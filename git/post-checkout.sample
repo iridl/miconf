@@ -1,0 +1,8 @@
+#!/bin/sh -e
+
+old_rev="$1"
+new_rev="$2"
+pattern='*'
+
+git update-timestamp "$new_rev" "$pattern"
+
