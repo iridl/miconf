@@ -1,4 +1,4 @@
-$ cat config.lua
+$ cat sample.config
 a = 5
 b = 200
 c = "Hello, world!"
@@ -23,9 +23,9 @@ text5,<<<square(i)>>>,text6,<<<d[1]>>>,text7
 === end
 text8
 
-$ miconf config.lua <file.template >file 
+$ miconf sample.config sample.template >sample 
 
-$ cat file
+$ cat sample
 text0
 text1,Hello, world!,text2
 text3
