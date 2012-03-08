@@ -1,0 +1,39 @@
+$ cat config.lua
+a = 5
+b = 200
+c = "Hello, world!"
+if a < 100 then
+   d = {x=a, "boo"}
+else 
+   d = {x=10, "foo"}
+end
+function square(x)
+   return x*x
+end
+
+$ cat file.template
+text0
+text1,<<<c>>>,text2
+=== if b > 100 then
+text3
+=== end
+text4
+=== for i = 1, a do
+text5,<<<square(i)>>>,text6,<<<d[1]>>>,text7
+=== end
+text8
+
+$ miconf config.lua <file.template >file 
+
+$ cat file
+text0
+text1,Hello, world!,text2
+text3
+text4
+text5,1,text6,boo,text7
+text5,4,text6,boo,text7
+text5,9,text6,boo,text7
+text5,16,text6,boo,text7
+text5,25,text6,boo,text7
+text8
+
