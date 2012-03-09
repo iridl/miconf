@@ -31,8 +31,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#define TMPFNAME "tmp.lua"
-
 #define WRITE_BATCH 50
 #define WRITE_BEG "[=====["
 #define WRITE_END "]=====]"
@@ -150,46 +148,75 @@ void convert(FILE* fi, FILE* fo) {
 
 
 int main(int argc, char* argv[]) {
-   const char* cname = argc>1 ? argv[1] : "config.lua";
-   const char* tname = argc>2 ? argv[2] : "-";
+   const char* cname = argc>1 ? argv[1] : NULL;
+   const char* iname = argc>2 ? argv[2] : "-";
+   const char* oname = argc>3 ? argv[3] : "-";
+   const char* tname;
    FILE* fi;
-   FILE* fo;
+   FILE* ft;
+
+   if (argc<2) {
+      fprintf(stderr,"miconf: A Configuration Utility\n");
+      fprintf(stderr,"usage: miconf <config file> <input template> <output file>\n\n");
+      exit(1);
+   }
+
    lua_State *L = luaL_newstate();
    luaL_openlibs(L);
+
    if (luaL_dofile(L,cname)!=0) {
       fprintf(stderr,"%s (file=%s)\n",lua_tostring(L,-1),cname);
       lua_pop(L,1);
       exit(1);
    }
-   if (strcmp(tname,"-")!=0) {
-      fi = fopen(tname,"r");
+
+   if (strcmp(iname,"-")!=0) {
+      fi = fopen(iname,"r");
       if (fi==NULL) {
-         fprintf(stderr,"can't open input file (file=%s, errno=%d)\n", tname, errno);
+         fprintf(stderr,"can't open input file (file=%s, errno=%d)\n", iname, errno);
          exit(1);
       }
    } else {
       fi = stdin;
    }
 
-   fo = fopen(TMPFNAME,"w");
-   if (fo==NULL) {
-      fprintf(stderr,"can't open temporary file (file=%s, errno=%d)\n", TMPFNAME, errno);
+   if (strcmp(oname,"-")!=0) {
+      stdout = freopen(oname, "w", stdout);
+      if (stdout==NULL) {
+         fprintf(stderr,"can't open output file (file=%s, errno=%d)\n", oname, errno);
+         exit(1);
+      }
+   }
+
+   tname = tmpnam(NULL);
+   if (tname==NULL) {
+      fprintf(stderr,"can't obtain temporary file name (errno=%d)\n", errno);
       exit(1);
    }
-   convert(fi,fo);
-   fclose(fo);
+   ft = fopen(tname,"w");
+   if (ft==NULL) {
+      fprintf(stderr,"can't open temporary file (file=%s, errno=%d)\n", tname, errno);
+      exit(1);
+   }
+   convert(fi,ft);
+   fclose(ft);
 
-   if (strcmp(tname,"-")!=0) {
+   if (strcmp(iname,"-")!=0) {
       fclose(fi);
    }
 
-   if (luaL_dofile(L,TMPFNAME)!=0) {
-      fprintf(stderr,"%s (file=%s)\n",lua_tostring(L,-1),TMPFNAME);
+   if (luaL_dofile(L,tname)!=0) {
+      fprintf(stderr,"%s (file=%s)\n",lua_tostring(L,-1),tname);
       lua_pop(L,1);
       exit(1);
    }
 
    lua_close(L);
+
+   if (unlink(tname)!=0) {
+      fprintf(stderr,"can't remove temporary file (file=%s, errno=%d)\n", tname, errno);
+      exit(1);
+   }
 
    return(0);
 }

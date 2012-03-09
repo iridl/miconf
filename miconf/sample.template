@@ -5,7 +5,7 @@ text3
 === end
 text4
 === for i = 1, a do
-text5,<<<square(i)>>>,text6,<<<d[1]>>>,text7
+text5,<<<xsquare(i)>>>,text6,<<<d[1]>>>,text7
 === end
 text8
 
