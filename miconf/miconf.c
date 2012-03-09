@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
@@ -154,6 +155,7 @@ int main(int argc, char* argv[]) {
    const char* tname;
    FILE* fi;
    FILE* ft;
+   struct stat tstats;
 
    if (argc<2) {
       fprintf(stderr,"miconf: A Configuration Utility\n");
@@ -169,6 +171,13 @@ int main(int argc, char* argv[]) {
       lua_pop(L,1);
       exit(1);
    }
+
+   if (stat(iname,&tstats) != 0) {
+      fprintf(stderr,"can't stat input file (file=%s, errno=%d)\n", iname, errno);
+      exit(1);
+   }
+
+
 
    if (strcmp(iname,"-")!=0) {
       fi = fopen(iname,"r");
@@ -212,6 +221,13 @@ int main(int argc, char* argv[]) {
    }
 
    lua_close(L);
+
+   fclose(stdout);
+
+   if (chmod(oname,tstats.st_mode)!=0) {
+      fprintf(stderr,"can't chmod output file (file=%s, mode=%o, errno=%d)\n", tname, tstats.st_mode, errno);
+      exit(1);
+   }
 
    if (unlink(tname)!=0) {
       fprintf(stderr,"can't remove temporary file (file=%s, errno=%d)\n", tname, errno);
