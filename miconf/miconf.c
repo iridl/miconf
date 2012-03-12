@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include "lua.h"
 #include "lauxlib.h"
@@ -142,97 +144,253 @@ void convert(FILE* fi, FILE* fo) {
    } while (c!=EOF);
 
    if (ferror(fi)) {
-      fprintf(stderr,"file read error (errno=%d)\n", errno);
+      fprintf(stderr,"file read error (errno=%d: %s)\n", errno, strerror(errno));
       exit(1);
    }
 }
 
+void process_file(lua_State *L, const char* iname, const char* oname, int tflag, int mflag, int vflag, const char* pattern) {
 
-int main(int argc, char* argv[]) {
-   const char* cname = argc>1 ? argv[1] : NULL;
-   const char* iname = argc>2 ? argv[2] : "-";
-   const char* oname = argc>3 ? argv[3] : "-";
+   if (vflag) {
+      fprintf(stderr, "processing file '%s' -> '%s'\n", iname, oname);
+   }
+
    const char* tname;
    FILE* fi;
    FILE* ft;
    struct stat tstats;
+   int isStdin = (strcmp(iname,"-")==0);
+   int isStdout = (strcmp(oname,"-")==0);
 
-   if (argc<2) {
-      fprintf(stderr,"miconf: A Configuration Utility\n");
-      fprintf(stderr,"usage: miconf <config file> <input template> <output file>\n\n");
-      exit(1);
-   }
+   mflag = mflag || isStdin || isStdout;
 
-   lua_State *L = luaL_newstate();
-   luaL_openlibs(L);
-
-   if (luaL_dofile(L,cname)!=0) {
-      fprintf(stderr,"%s (file=%s)\n",lua_tostring(L,-1),cname);
-      lua_pop(L,1);
-      exit(1);
-   }
-
-   if (stat(iname,&tstats) != 0) {
-      fprintf(stderr,"can't stat input file (file=%s, errno=%d)\n", iname, errno);
-      exit(1);
-   }
-
-
-
-   if (strcmp(iname,"-")!=0) {
+   if (isStdin) {
+      fi = stdin;
+   } else {
       fi = fopen(iname,"r");
       if (fi==NULL) {
-         fprintf(stderr,"can't open input file (file=%s, errno=%d)\n", iname, errno);
+         fprintf(stderr,"can't open input file (file='%s', errno=%d: %s)\n", iname, errno, strerror(errno));
          exit(1);
       }
-   } else {
-      fi = stdin;
    }
 
-   if (strcmp(oname,"-")!=0) {
+   if (!isStdout) {
       stdout = freopen(oname, "w", stdout);
       if (stdout==NULL) {
-         fprintf(stderr,"can't open output file (file=%s, errno=%d)\n", oname, errno);
+         fprintf(stderr,"can't open output file (file='%s', errno=%d: %s)\n", oname, errno, strerror(errno));
          exit(1);
       }
    }
 
    tname = tmpnam(NULL);
    if (tname==NULL) {
-      fprintf(stderr,"can't obtain temporary file name (errno=%d)\n", errno);
+      fprintf(stderr,"can't obtain temporary file name (errno=%d: %s)\n", errno, strerror(errno));
       exit(1);
    }
    ft = fopen(tname,"w");
    if (ft==NULL) {
-      fprintf(stderr,"can't open temporary file (file=%s, errno=%d)\n", tname, errno);
+      fprintf(stderr,"can't open temporary file (file='%s', errno=%d: %s)\n", tname, errno, strerror(errno));
       exit(1);
    }
    convert(fi,ft);
    fclose(ft);
 
-   if (strcmp(iname,"-")!=0) {
+   if (!isStdin) {
       fclose(fi);
    }
 
    if (luaL_dofile(L,tname)!=0) {
-      fprintf(stderr,"%s (file=%s)\n",lua_tostring(L,-1),tname);
+      fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),tname);
       lua_pop(L,1);
       exit(1);
    }
 
+//   if (!isStdout) {
+//        stdout = freopen("/dev/null", "w", stdout);
+//        if (stdout==NULL) {
+//           fprintf(stderr,"can't open /dev/null (errno=%d: %s)\n", errno, strerror(errno));
+//           exit(1);
+//        }
+//   }
+
+   if (!mflag) {
+      if (stat(iname,&tstats) != 0) {
+         fprintf(stderr,"can't stat input file (file='%s', errno=%d: %s)\n", iname, errno, strerror(errno));
+         exit(1);
+      }
+      if (chmod(oname,tstats.st_mode)!=0) {
+         fprintf(stderr,"can't chmod output file (file='%s', mode=%o, errno=%d: %s)\n", tname, tstats.st_mode, errno, strerror(errno));
+         exit(1);
+      }
+   }
+
+   if (!tflag) {
+      if (unlink(tname)!=0) {
+         fprintf(stderr,"can't remove temporary file (file='%s', errno=%d: %s)\n", tname, errno, strerror(errno));
+         exit(1);
+      }
+   } else if (vflag){
+      fprintf(stderr,"temporary file '%s'\n",tname); 
+   }
+}
+
+void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vflag, const char* pattern, int level) {
+
+   if (vflag) {
+      fprintf(stderr, "processing dir(%d) '%s'\n", level, dname);
+   }
+
+   DIR *dirp = opendir(dname);
+   if (dirp==NULL) {
+      fprintf(stderr,"can't open directory (name='%s', errno=%d: %s)\n", dname, errno, strerror(errno));
+      exit(1);
+   }
+   struct dirent* dp;
+   while ((dp=readdir(dirp)) != NULL) {
+      switch(dp->d_type) {
+      case DT_REG:
+         lua_getglobal(L,"miconf_fname_hook");
+         lua_pushinteger(L,level);
+         lua_pushstring(L,pattern);
+         lua_pushstring(L,dname);
+         lua_pushstring(L,dp->d_name);
+         lua_pushinteger(L,dp->d_type);
+         if (lua_pcall(L, 5, 2, 0) != 0) {
+            fprintf(stderr,"error running lua function 'miconf_fname_hook': %s\n", lua_tostring(L,-1));
+            exit(1);
+         }
+         if (lua_isstring(L,-1) && lua_isstring(L,-1)) {
+            const char* iname = lua_tostring(L,-2);
+            const char* oname = lua_tostring(L,-1);
+            process_file(L,iname,oname,tflag,mflag,vflag,pattern);
+         }
+         lua_pop(L,2);  
+         break;
+      case DT_DIR:
+         if (strcmp(dp->d_name,".")==0 || strcmp(dp->d_name,"..")==0) 
+            break;
+         lua_getglobal(L,"miconf_dname_hook");
+         lua_pushinteger(L,level);
+         lua_pushstring(L,dname);
+         lua_pushstring(L,dp->d_name);
+         if (lua_pcall(L, 3, 1, 0) != 0) {
+            fprintf(stderr,"error running lua function 'miconf_dname_hook': %s\n", lua_tostring(L,-1));
+            exit(1);
+         }
+         if (lua_isstring(L,-1)) {
+            process_dir(L,lua_tostring(L,-1),tflag,mflag,vflag,pattern,level+1);
+         }
+         lua_pop(L,1);
+         break;
+      }
+   }
+   closedir(dirp);
+
+}
+
+
+void usage() {
+      fprintf(stderr,"miconf: configuration utility\n\n");
+      fprintf(stderr,"usage:\n");
+      fprintf(stderr,"   miconf [options] template_file output_file\n");
+      fprintf(stderr,"   miconf [options] -r directory\n\n");
+      fprintf(stderr,"options:\n");
+      fprintf(stderr,"   -c file -- config file, for example: -c config.lua \n");
+      fprintf(stderr,"   -e block -- config block, for example: -e 'host=\"foo\"; ip=\"127.0.0.1\"' \n");
+      fprintf(stderr,"   -p pattern -- template file name pattern (default: '[.]template$')\n");
+      fprintf(stderr,"   -t -- preserve temp files\n");
+      fprintf(stderr,"   -m -- disable chmod\n");
+      fprintf(stderr,"   -v -- verbose\n\n");
+}
+
+
+int main(int argc, char* argv[]) {
+   int ch;
+   int rflag = 0;
+   int tflag = 0;
+   int mflag = 0;
+   int vflag = 0;
+   const char* pattern = "[.]template$";
+   lua_State *L = luaL_newstate();
+   luaL_openlibs(L);
+
+
+   const char* hooks = 
+      "function miconf_dname_hook(level,path,file)\n"
+      "   return path..(file and (\"/\"..file) or \"\")\n"
+      "end\n"
+      "function miconf_fname_hook(level,pattern,path,file,type)\n"
+      "   ofile,cnt = file:gsub(pattern,\"\")\n"
+      "   if ofile and cnt==1 and ofile:len()>0 then\n"
+      "      return path..(file and (\"/\"..file) or \"\"), path..\"/\"..ofile\n"
+      "   else\n"
+      "      return nil,nil\n"
+      "   end\n"
+      "end\n"
+   ;
+
+   if (luaL_dostring(L,hooks)!=0) {
+      fprintf(stderr,"%s (string='%s')\n",lua_tostring(L,-1),hooks);
+      lua_pop(L,1);
+      exit(1);
+   }
+
+   while ((ch = getopt(argc, argv, "hrtmvp:e:c:")) != -1) {
+      switch (ch) {
+      case 'h':
+         usage();
+         fprintf(stderr,"root config:\n\n",hooks);
+         fprintf(stderr,"%s\n",hooks);
+         fprintf(stderr,"----\n\n");
+         exit(0);
+      case 'r': rflag = 1; break;
+      case 't': tflag = 1; break;
+      case 'm': mflag = 1; break;
+      case 'v': vflag = 1; break;
+      case 'p': pattern = optarg; break;
+      case 'c':
+         if (luaL_dofile(L,optarg)!=0) {
+            fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),optarg);
+            lua_pop(L,1);
+            exit(1);
+         }
+         break;
+      case 'e':
+         if (luaL_dostring(L,optarg)!=0) {
+            fprintf(stderr,"%s (block='%s')\n",lua_tostring(L,-1),optarg);
+            lua_pop(L,1);
+            exit(1);
+         }
+         break;
+      default:
+         usage();
+         exit(1);
+      }
+   }
+   argc -= optind;
+   argv += optind;
+
+   if (!rflag) {
+      const char* iname = argc>0 ? argv[0] : "-";
+      const char* oname = argc>1 ? argv[1] : "-";
+      process_file(L,iname,oname,tflag,mflag,vflag,pattern);
+   } else {
+      const char* dname = argc>0 ? argv[0] : ".";
+      lua_getglobal(L,"miconf_dname_hook");
+      lua_pushinteger(L,0);
+      lua_pushstring(L,dname);
+      lua_pushnil(L);
+      if (lua_pcall(L, 3, 1, 0) != 0) {
+         fprintf(stderr,"error running lua function 'miconf_dname_hook': %s\n", lua_tostring(L,-1));
+         exit(1);
+      }
+      if (lua_isstring(L,-1)) {
+         process_dir(L,lua_tostring(L,-1),tflag,mflag,vflag,pattern,1);
+      }
+      lua_pop(L,1);
+   }
+
    lua_close(L);
-
-   fclose(stdout);
-
-   if (chmod(oname,tstats.st_mode)!=0) {
-      fprintf(stderr,"can't chmod output file (file=%s, mode=%o, errno=%d)\n", tname, tstats.st_mode, errno);
-      exit(1);
-   }
-
-   if (unlink(tname)!=0) {
-      fprintf(stderr,"can't remove temporary file (file=%s, errno=%d)\n", tname, errno);
-      exit(1);
-   }
 
    return(0);
 }
