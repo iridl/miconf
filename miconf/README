@@ -36,34 +36,3 @@ text5,16,text6,boo,text7
 text5,25,text6,boo,text7
 text8
 
-$ miconf -h 
-miconf: configuration utility
-
-usage:
-   miconf [options] template_file output_file
-   miconf [options] -r directory
-
-options:
-   -c file -- config file, for example: -c config.lua 
-   -e block -- config block, for example: -e 'host="foo"; ip="127.0.0.1"' 
-   -p pattern -- template file name pattern (default: '[.]template$')
-   -t -- preserve temp files
-   -m -- disable chmod
-   -v -- verbose
-
-root config:
-
-function miconf_dname_hook(level,path,file)
-   return path..(file and ("/"..file) or "")
-end
-function miconf_fname_hook(level,pattern,path,file,type)
-   ofile,cnt = file:gsub(pattern,"")
-   if ofile and cnt==1 and ofile:len()>0 then
-      return path..(file and ("/"..file) or ""), path.."/"..ofile
-   else
-      return nil,nil
-   end
-end
-
-----
-
