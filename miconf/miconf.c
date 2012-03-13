@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Igor Khomyakov. All rights reserved.
+ * Copyright (c) 2012 ikh software, inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -34,6 +34,8 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+
+#include "version"
 
 #define WRITE_BATCH 50
 #define WRITE_BEG "[=====["
@@ -291,17 +293,20 @@ void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vfla
 
 
 void usage() {
-      fprintf(stderr,"miconf: configuration utility\n\n");
-      fprintf(stderr,"usage:\n");
+      fprintf(stderr,"Miconf: configuration utility\n\n");
+      fprintf(stderr,"Miconf %s Copyright (c) 2012 ikh software, inc.\n", strchr(MICONF_RELEASE,'-')+1);
+      fprintf(stderr,"%s\n\n", LUA_COPYRIGHT);
+      fprintf(stderr,"Usage:\n");
       fprintf(stderr,"   miconf [options] template_file output_file\n");
       fprintf(stderr,"   miconf [options] -r directory\n\n");
-      fprintf(stderr,"options:\n");
+      fprintf(stderr,"Options:\n");
       fprintf(stderr,"   -c file -- config file, for example: -c config.lua \n");
       fprintf(stderr,"   -e block -- config block, for example: -e 'host=\"foo\"; ip=\"127.0.0.1\"' \n");
       fprintf(stderr,"   -p pattern -- template file name pattern (default: '[.]template$')\n");
       fprintf(stderr,"   -t -- preserve temp files\n");
       fprintf(stderr,"   -m -- disable chmod\n");
-      fprintf(stderr,"   -v -- verbose\n\n");
+      fprintf(stderr,"   -v -- verbose\n");
+      fprintf(stderr,"   -h -- help\n\n");
 }
 
 
@@ -340,7 +345,7 @@ int main(int argc, char* argv[]) {
       switch (ch) {
       case 'h':
          usage();
-         fprintf(stderr,"root config:\n\n",hooks);
+         fprintf(stderr,"Default config:\n\n",hooks);
          fprintf(stderr,"%s\n",hooks);
          fprintf(stderr,"----\n\n");
          exit(0);
