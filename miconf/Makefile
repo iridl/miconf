@@ -1,2 +1,2 @@
 miconf: miconf.c
-	gcc -O2 -I ${HOME}/local/include -L${HOME}/local/lib -o miconf miconf.c -l lua
+	gcc -O2 -I../lua/src -L../lua/src -o miconf miconf.c -l lua

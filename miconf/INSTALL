@@ -1,0 +1,6 @@
+cd ../lua
+make  # this prints the list of available platforms
+make macosx # or another platform 
+cd ../miconf
+make
+sudo cp miconf /usr/local/bin 
