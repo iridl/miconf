@@ -46,6 +46,8 @@
 #define RA '>'
 #define NL '\n'
 
+#define doNewLine(c) fprintf(fo,"io.write('\\n') -- %d\n",lineno)
+
 #define begText() fprintf(fo,"io.write(%s",WRITE_BEG)
 #define doText(c) fputc(c,fo)
 #define endText() fprintf(fo,"%s) -- %d\n",WRITE_END,lineno)
@@ -72,6 +74,7 @@ void convert(FILE* fi, FILE* fo) {
          case EQ: s=2; break;
          case LA: s=6; break;
          case EOF: s=1; break;
+         case NL: s=1; doNewLine(); break;
          default: s=5; begText(); doText(c); break;
          }
          break;
@@ -79,6 +82,7 @@ void convert(FILE* fi, FILE* fo) {
          switch (c) {
          case EQ: s=3; break;
          case EOF: s=5; doText(EQ); endText(); break;
+         case NL: s=1; doText(EQ); endText(); break;
          default: s=5; doText(EQ); doText(c); break;
          }
          break;
@@ -86,13 +90,14 @@ void convert(FILE* fi, FILE* fo) {
          switch (c) {
          case EQ: s=4; begStat(); break;
          case EOF: s=5; doText(EQ); doText(EQ); endText(); break;
+         case NL: s=1; doText(EQ); doText(EQ); endText(); break;
          default: s=5; doText(EQ); doText(EQ); doText(c); break;
          }
          break;
       case 4:
          switch (c) {
-         case NL: s=1; endStat(); break;
          case EOF: s=1; endStat(); break;
+         case NL: s=1; endStat(); break;
          default: s=4; doStat(c); break;
          }
          break;
@@ -108,6 +113,7 @@ void convert(FILE* fi, FILE* fo) {
          switch (c) {
          case LA: s=7; break;
          case EOF: s=5; doText(LA); endText(); break;
+         case NL: s=1; doText(LA); endText(); break;
          default: s=5; doText(LA); doText(c); break;
          }
          break;
@@ -115,6 +121,7 @@ void convert(FILE* fi, FILE* fo) {
          switch (c) {
          case LA: s=8; endText(); begExpr(); break;
          case EOF: s=5; doText(LA); doText(LA); endText(); break;
+         case NL: s=1; doText(LA); doText(LA); endText(); break;
          default: s=5; doText(LA); doText(LA); doText(c); break;
          }
          break;
