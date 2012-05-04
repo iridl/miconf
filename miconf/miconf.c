@@ -303,7 +303,7 @@ void usage() {
       fprintf(stderr,"Miconf: configuration utility\n\n");
       fprintf(stderr,"Miconf %s Copyright (c) 2012 ikh software, inc.\n", miconf_VERSION );
       fprintf(stderr,"%s\n\n", LUA_COPYRIGHT);
-      fprintf(stderr,"Build: %s\n\n", miconf_VERSION_RAW );
+      fprintf(stderr,"Commit: %s\n\n", miconf_VERSION_RAW );
       fprintf(stderr,"Usage:\n");
       fprintf(stderr,"   miconf [options] template_file output_file\n");
       fprintf(stderr,"   miconf [options] -r directory\n\n");
