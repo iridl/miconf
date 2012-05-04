@@ -18,7 +18,7 @@ clean:
 	make -C git clean
 	make -C miconf clean
 
-install:
+install: build
 	install -d $(PREFIX)/bin
 	install miconf/miconf $(PREFIX)/bin
 	install git/git-find-large $(PREFIX)/bin
