@@ -1,0 +1,69 @@
+#!/bin/sh -e
+
+label=${1-release}
+pattern=${2-release-[0-9.]*}
+mode=${3-raw}
+ref="${4-HEAD}"
+
+#echo "git-generate-version-info: '$label', '$pattern', '$mode', '$ref'"
+
+git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "label=$label" -v mode=$mode -v "ref=$ref" '
+{
+   raw=$0
+   ver=$2
+   ahead=$3
+   id=substr($4,2,length($4))
+   scm=substr($4,1,1)
+   if(scm=="g") {
+      scm="git";
+   }
+   n=split($2,vers,".");
+   if(mode=="c") {
+      printf("#define %s_VERSION_RAW \"%s\"\n", label,raw);
+      printf("#define %s_VERSION \"%s\"\n", label,ver);
+      printf("#define %s_VERSION_MAJOR %s\n", label,vers[1]);
+      printf("#define %s_VERSION_MINOR %s\n", label,vers[2]);
+      printf("#define %s_VERSION_PATCH %s\n", label,vers[3]);
+      printf("#define %s_VERSION_AHEAD %s\n", label,ahead);
+      printf("#define %s_VERSION_ID \"%s\"\n", label,id);
+      printf("#define %s_VERSION_SCM \"%s\"\n", label,scm);
+      printf("#define %s_VERSION_REF \"%s\"\n", label,ref);
+   } else if(mode=="sh") {
+      printf("%s_VERSION_RAW=\"%s\"; export %s_VERSION_RAW\n", label,raw,label);
+      printf("%s_VERSION=\"%s\"; export %s_VERSION\n", label,ver,label);
+      printf("%s_VERSION_MAJOR=%s; export %s_VERSION_MAJOR\n", label,vers[1],label);
+      printf("%s_VERSION_MINOR=%s; export %s_VERSION_MINOR\n", label,vers[2],label);
+      printf("%s_VERSION_PATCH=%s; export %s_VERSION_PATCH\n", label,vers[3],label);
+      printf("%s_VERSION_AHEAD=%s; export %s_VERSION_AHEAD\n", label,ahead,label);
+      printf("%s_VERSION_ID=\"%s\"; export %s_VERSION_ID\n", label,id,label);
+      printf("%s_VERSION_SCM=\"%s\"; export %s_VERSION_SCM\n", label,scm,label);
+      printf("%s_VERSION_REF=\"%s\"; export %s_VERSION_REF\n", label,ref,label);
+   } else if(mode=="csh") {
+      printf("setenv %s_VERSION_RAW \"%s\"\n", label,raw);
+      printf("setenv %s_VERSION \"%s\"\n", label,ver);
+      printf("setenv %s_VERSION_MAJOR %s\n", label,vers[1]);
+      printf("setenv %s_VERSION_MINOR %s\n", label,vers[2]);
+      printf("setenv %s_VERSION_PATCH %s\n", label,vers[3]);
+      printf("setenv %s_VERSION_AHEAD %s\n", label,ahead);
+      printf("setenv %s_VERSION_ID \"%s\"\n", label,id);
+      printf("setenv %s_VERSION_SCM \"%s\"\n", label,scm);
+      printf("setenv %s_VERSION_REF \"%s\"\n", label,ref);
+   } else if(mode=="lua"||mode=="miconf") {
+      printf("%s_VERSION = {\n", label);
+      printf("raw=\"%s\",\n", raw);
+      printf("version=\"%s\",\n", ver);
+      printf("major=%s,\n", vers[1]);
+      printf("minor=%s,\n", vers[2]);
+      printf("patch=%s,\n", vers[3]);
+      printf("ahead=%s,\n", ahead);
+      printf("id=\"%s\",\n", id);
+      printf("scm=\"%s\",\n", scm);
+      printf("ref=\"%s\",\n", ref);
+      printf("}\n");
+   } else { #raw
+      printf("%s",$0);
+   }
+}
+'
+
+
