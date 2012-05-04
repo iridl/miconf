@@ -1,0 +1,1 @@
+PLATFORM=linux PREFIX=/usr/local make install
