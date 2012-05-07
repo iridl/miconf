@@ -1,9 +1,9 @@
 #!/bin/sh -e
 
 label=${1-release}
-pattern=${2-release-[0-9.]*}
-mode=${3-raw}
-ref="${4-HEAD}"
+pattern="$1-[0-9.]*"
+mode=${2-raw}
+ref="${3-HEAD}"
 
 #echo "git-generate-version-info: '$label', '$pattern', '$mode', '$ref'"
 
