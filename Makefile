@@ -1,26 +1,33 @@
-PLATFORMS = aix ansi bsd freebsd generic linux macosx mingw posix solaris
+PREFIX ?= .
+PLATFORM ?= $(shell scripts/miconf-platform)
 
-ifndef PLATFORM
-   $(error Please set PLATFORM to one of the following: $(PLATFORMS))
+INSTALL = install -p
+
+LUA_PLATFORM = $(PLATFORM)
+SYSLIBS = 
+ifeq ($(PLATFORM),Linux)
+   LUA_PLATFORM = linux
+   SYSLIBS = -lm -Wl,-E -ldl
+endif
+ifeq ($(PLATFORM),Darwin)
+   LUA_PLATFORM = macosx
 endif
 
-ifndef PREFIX
-   PREFIX = .
-endif
 
 build:
-	make -C lua $(PLATFORM)
-	make -C git
-	make -C miconf
+	$(MAKE) -C lua $(LUA_PLATFORM)
+	$(MAKE) -C scripts
+	$(MAKE) -C miconf "SYSLIBS=$(SYSLIBS)"
 
 clean:
-	make -C lua clean
-	make -C git clean
-	make -C miconf clean
+	$(MAKE) -C lua clean
+	$(MAKE) -C scripts clean
+	$(MAKE) -C miconf clean
 
 install: build
-	install -d $(PREFIX)/bin
-	install miconf/miconf $(PREFIX)/bin
-	install git/git-find-large $(PREFIX)/bin
-	install git/git-generate-version-info $(PREFIX)/bin
-	install git/git-update-timestamp $(PREFIX)/bin
+	$(INSTALL) -d $(PREFIX)/bin
+	$(INSTALL) miconf/miconf $(PREFIX)/bin
+	$(INSTALL) scripts/miconf-platform $(PREFIX)/bin
+	$(INSTALL) scripts/git-find-large $(PREFIX)/bin
+	$(INSTALL) scripts/git-generate-version-info $(PREFIX)/bin
+	$(INSTALL) scripts/git-update-timestamp $(PREFIX)/bin

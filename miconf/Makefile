@@ -1,8 +1,8 @@
 miconf: miconf.c version.h
-	gcc -O2 -I../lua/src -L../lua/src -o $@ $< -l lua
+	gcc -O2 -I../lua/src -L../lua/src -o $@ $< -l lua $(SYSLIBS)
 
 version.h: ../.git
-	../git/git-generate-version-info miconf c >$@
+	../scripts/git-generate-version-info miconf c >$@
 
 miconf.html: miconf.md
 	multimarkdown miconf.md >miconf.html

@@ -1,0 +1,2 @@
+#!/bin/sh -e
+uname -s 2>/dev/null | awk '{printf("%s",$1)}'
