@@ -1,1 +1,1 @@
-PREFIX=/usr/local make install
+make PREFIX=/usr/local PLAT=Linux install

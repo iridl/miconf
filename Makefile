@@ -1,21 +1,21 @@
 PREFIX ?= .
-PLATFORM ?= $(shell scripts/miconf-platform)
+PLAT ?= $(shell scripts/miconf-platform)
 
 INSTALL = install -p
 
-LUA_PLATFORM = $(PLATFORM)
+LUA_PLAT = $(PLAT)
 SYSLIBS = 
-ifeq ($(PLATFORM),Linux)
-   LUA_PLATFORM = linux
+ifeq ($(PLAT),Linux)
+   LUA_PLAT = linux
    SYSLIBS = -lm -Wl,-E -ldl
 endif
-ifeq ($(PLATFORM),Darwin)
-   LUA_PLATFORM = macosx
+ifeq ($(PLAT),Darwin)
+   LUA_PLAT = macosx
 endif
 
 
 build:
-	$(MAKE) -C lua $(LUA_PLATFORM)
+	$(MAKE) -C lua $(LUA_PLAT)
 	$(MAKE) -C scripts
 	$(MAKE) -C miconf "SYSLIBS=$(SYSLIBS)"
 
