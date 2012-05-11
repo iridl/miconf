@@ -19,7 +19,7 @@ build:
 	$(MAKE) -C scripts
 	$(MAKE) -C miconf "SYSLIBS=$(SYSLIBS)"
 
-clean:
+clean distclean:
 	$(MAKE) -C lua clean
 	$(MAKE) -C scripts clean
 	$(MAKE) -C miconf clean
