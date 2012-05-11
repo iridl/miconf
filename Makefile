@@ -1,7 +1,7 @@
 PREFIX ?= .
 PLAT ?= $(shell scripts/miconf-platform)
 
-INSTALL = install -p
+INSTALL = install
 
 LUA_PLAT = $(PLAT)
 SYSLIBS = 
