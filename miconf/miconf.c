@@ -82,7 +82,7 @@ void convert(FILE* fi, FILE* fo) {
          switch (c) {
          case EQ: s=3; break;
          case EOF: s=5; begText(); doText(EQ); endText(); break;
-         case NL: s=1; begText(); doText(EQ); endText(); break;
+         case NL: s=1; begText(); doText(EQ); endText(); doNewLine(); break;
          default: s=5; begText(); doText(EQ); doText(c); break;
          }
          break;
@@ -90,7 +90,7 @@ void convert(FILE* fi, FILE* fo) {
          switch (c) {
          case EQ: s=4; begStat(); break;
          case EOF: s=5; begText(); doText(EQ); doText(EQ); endText(); break;
-         case NL: s=1; begText(); doText(EQ); doText(EQ); endText(); break;
+         case NL: s=1; begText(); doText(EQ); doText(EQ); endText(); doNewLine(); break;
          default: s=5; begText(); doText(EQ); doText(EQ); doText(c); break;
          }
          break;
@@ -104,7 +104,7 @@ void convert(FILE* fi, FILE* fo) {
       case 5:
          switch (c) {
          case LA: s=6; break;
-         case NL: s=1; doText(c); endText(); break;
+         case NL: s=1; endText(); doNewLine(); break;
          case EOF: s=5; endText(); break;
          default: s=5; doText(c); break;
          }
@@ -113,7 +113,7 @@ void convert(FILE* fi, FILE* fo) {
          switch (c) {
          case LA: s=7; break;
          case EOF: s=5; doText(LA); endText(); break;
-         case NL: s=1; doText(LA); endText(); break;
+         case NL: s=1; doText(LA); endText(); doNewLine(); break;
          default: s=5; doText(LA); doText(c); break;
          }
          break;
@@ -121,7 +121,7 @@ void convert(FILE* fi, FILE* fo) {
          switch (c) {
          case LA: s=8; endText(); begExpr(); break;
          case EOF: s=5; doText(LA); doText(LA); endText(); break;
-         case NL: s=1; doText(LA); doText(LA); endText(); break;
+         case NL: s=1; doText(LA); doText(LA); endText(); doNewLine(); break;
          default: s=5; doText(LA); doText(LA); doText(c); break;
          }
          break;
