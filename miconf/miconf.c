@@ -298,9 +298,14 @@ void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vfla
 
 }
 
+void version() {
+      fprintf(stderr,"Miconf: configuration utility\n");
+      fprintf(stderr,"Miconf %s Copyright (c) 2012 ikh software, inc.\n", miconf_VERSION );
+      fprintf(stderr,"%s\n", LUA_COPYRIGHT);
+}
 
 void usage() {
-      fprintf(stderr,"Miconf: configuration utility\n\n");
+      fprintf(stderr,"Miconf: configuration utility\n");
       fprintf(stderr,"Miconf %s Copyright (c) 2012 ikh software, inc.\n", miconf_VERSION );
       fprintf(stderr,"%s\n\n", LUA_COPYRIGHT);
       fprintf(stderr,"Commit: %s\n\n", miconf_VERSION_RAW );
@@ -314,6 +319,7 @@ void usage() {
       fprintf(stderr,"   -t -- preserve temp files\n");
       fprintf(stderr,"   -m -- disable chmod\n");
       fprintf(stderr,"   -v -- verbose\n");
+      fprintf(stderr,"   -V -- version\n");
       fprintf(stderr,"   -h -- help\n\n");
 }
 
@@ -349,8 +355,11 @@ int main(int argc, char* argv[]) {
       exit(1);
    }
 
-   while ((ch = getopt(argc, argv, "hrtmvp:e:c:")) != -1) {
+   while ((ch = getopt(argc, argv, "hVrtmvp:e:c:")) != -1) {
       switch (ch) {
+      case 'V':
+         version();
+         exit(0);
       case 'h':
          usage();
          fprintf(stderr,"Default config:\n\n",hooks);
