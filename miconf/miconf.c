@@ -37,13 +37,9 @@
 
 #include "version.h"
 
-#define WRITE_BATCH 50
 #define WRITE_BEG "[=====["
 #define WRITE_END "]=====]"
 
-#define EQ '='
-#define LA '<'
-#define RA '>'
 #define NL '\n'
 
 #define doNewLine(c) fprintf(fo,"io.write('\\n') -- %d\n",lineno)
@@ -60,9 +56,7 @@
 #define doExpr(c) fputc(c,fo)
 #define endExpr() fprintf(fo,")) -- %d\n", lineno)
 
-//         if (lineno % WRITE_BATCH == 0) {
-
-void convert(FILE* fi, FILE* fo) {
+void convert(FILE* fi, FILE* fo, int n, int eq, int la, int ra) {
    int lineno = 1;
    int c;
    int s = 1; //state
@@ -71,27 +65,43 @@ void convert(FILE* fi, FILE* fo) {
       switch (s) {
       case 1:
          switch (c) {
-         case EQ: s=2; break;
-         case LA: s=6; begText(); break;
          case EOF: s=1; break;
          case NL: s=1; doNewLine(); break;
-         default: s=5; begText(); doText(c); break;
+         default: 
+            if (c==eq) {
+               s=2;
+            } else if(c==la) {
+               s=6; begText();
+            } else {
+               s=5; begText(); doText(c); 
+            }
+            break;
          }
          break;
       case 2:
          switch (c) {
-         case EQ: s=3; break;
-         case EOF: s=5; begText(); doText(EQ); endText(); break;
-         case NL: s=1; begText(); doText(EQ); endText(); doNewLine(); break;
-         default: s=5; begText(); doText(EQ); doText(c); break;
+         case EOF: s=5; begText(); doText(eq); endText(); break;
+         case NL: s=1; begText(); doText(eq); endText(); doNewLine(); break;
+         default: 
+            if (c==eq) {
+               s=3; 
+            } else {
+               s=5; begText(); doText(eq); doText(c);
+            }
+            break;
          }
          break;
       case 3:
          switch (c) {
-         case EQ: s=4; begStat(); break;
-         case EOF: s=5; begText(); doText(EQ); doText(EQ); endText(); break;
-         case NL: s=1; begText(); doText(EQ); doText(EQ); endText(); doNewLine(); break;
-         default: s=5; begText(); doText(EQ); doText(EQ); doText(c); break;
+         case EOF: s=5; begText(); doText(eq); doText(eq); endText(); break;
+         case NL: s=1; begText(); doText(eq); doText(eq); endText(); doNewLine(); break;
+         default: 
+            if (c==eq) {
+               s=4; begStat();
+            } else {
+               s=5; begText(); doText(eq); doText(eq); doText(c);
+            }
+            break;
          }
          break;
       case 4:
@@ -103,47 +113,77 @@ void convert(FILE* fi, FILE* fo) {
          break;
       case 5:
          switch (c) {
-         case LA: s=6; break;
          case NL: s=1; endText(); doNewLine(); break;
          case EOF: s=5; endText(); break;
-         default: s=5; doText(c); break;
+         default: 
+            if (c==la) {
+               s=6;
+            } else {
+               s=5; doText(c);
+            }
+            break;
          }
          break;
       case 6:
          switch (c) {
-         case LA: s=7; break;
-         case EOF: s=5; doText(LA); endText(); break;
-         case NL: s=1; doText(LA); endText(); doNewLine(); break;
-         default: s=5; doText(LA); doText(c); break;
+         case EOF: s=5; doText(la); endText(); break;
+         case NL: s=1; doText(la); endText(); doNewLine(); break;
+         default: 
+            if (c==la) {
+               s=7; 
+            } else {
+               s=5; doText(la); doText(c);
+            }
+            break;
          }
          break;
       case 7:
          switch (c) {
-         case LA: s=8; endText(); begExpr(); break;
-         case EOF: s=5; doText(LA); doText(LA); endText(); break;
-         case NL: s=1; doText(LA); doText(LA); endText(); doNewLine(); break;
-         default: s=5; doText(LA); doText(LA); doText(c); break;
+         case EOF: s=5; doText(la); doText(la); endText(); break;
+         case NL: s=1; doText(la); doText(la); endText(); doNewLine(); break;
+         default: 
+            if (c==la) {
+               s=8; endText(); begExpr();
+            } else {
+               s=5; doText(la); doText(la); doText(c);
+            }
+            break;
          }
          break;
       case 8:
          switch (c) {
-         case RA: s=9; break;
          case EOF: s=8; endExpr(); break;
-         default: s=8; doExpr(c); break;
+         default: 
+            if (c==ra) {
+               s=9;
+            } else {
+               s=8; doExpr(c);
+            }
+            break;
          }
          break;
       case 9:
          switch (c) {
-         case RA: s=10; break;
-         case EOF: s=8; doExpr(RA); endExpr(); break;
-         default: s=8; doExpr(RA); doExpr(c); break;
+         case EOF: s=8; doExpr(ra); endExpr(); break;
+         default: 
+            if (c==ra) {
+               s=10; 
+            } else {
+               s=8; doExpr(ra); doExpr(c);
+            }
+            break;
          }
          break;
       case 10:
          switch (c) {
-         case RA: s=5; endExpr(); begText(); break;
-         case EOF: s=8; doExpr(RA); doExpr(RA); endExpr(); break;
-         default: s=8; doExpr(RA); doExpr(RA); doExpr(c); break;
+         case EOF: s=8; doExpr(ra); doExpr(ra); endExpr(); break;
+         default: 
+            if (c==ra) {
+               s=5; endExpr(); begText();
+            } else {
+               s=8; doExpr(ra); doExpr(ra); doExpr(c);
+            }
+            break;
          }
          break;
       } 
@@ -159,10 +199,10 @@ void convert(FILE* fi, FILE* fo) {
    }
 }
 
-void process_file(lua_State *L, const char* iname, const char* oname, int tflag, int mflag, int vflag, const char* pattern) {
+void process_file(lua_State *L, const char* iname, const char* oname, int tflag, int mflag, int vflag, const char* pattern, int n, int cs, int cle, int cre) {
 
    if (vflag) {
-      fprintf(stderr, "processing file '%s' -> '%s'\n", iname, oname);
+      fprintf(stderr, "processing file '%s' -> '%s', (%d,'%c','%c','%c')\n", iname, oname, n,cs,cle,cre);
    }
 
    const char* tname;
@@ -202,7 +242,7 @@ void process_file(lua_State *L, const char* iname, const char* oname, int tflag,
       fprintf(stderr,"can't open temporary file (file='%s', errno=%d: %s)\n", tname, errno, strerror(errno));
       exit(1);
    }
-   convert(fi,ft);
+   convert(fi,ft,n,cs,cle,cre);
    fclose(ft);
 
    if (!isStdin) {
@@ -265,16 +305,37 @@ void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vfla
          lua_pushstring(L,dname);
          lua_pushstring(L,dp->d_name);
          lua_pushinteger(L,dp->d_type);
-         if (lua_pcall(L, 5, 2, 0) != 0) {
+         if (lua_pcall(L, 5, 3, 0) != 0) {
             fprintf(stderr,"error running lua function 'miconf_fname_hook': %s\n", lua_tostring(L,-1));
             exit(1);
          }
-         if (lua_isstring(L,-1) && lua_isstring(L,-1)) {
-            const char* iname = lua_tostring(L,-2);
-            const char* oname = lua_tostring(L,-1);
-            process_file(L,iname,oname,tflag,mflag,vflag,pattern);
+         if (lua_istable(L,-1) && lua_isstring(L,-2) && lua_isstring(L,-3)) {
+            const char* iname = lua_tostring(L,-3);
+            const char* oname = lua_tostring(L,-2);
+
+            lua_pushinteger(L,1);
+            lua_gettable(L,-2);
+            int n = lua_tointeger(L,-1);
+            lua_pop(L,1);
+
+            lua_pushinteger(L,2);
+            lua_gettable(L,-2);
+            int cs = lua_tointeger(L,-1);
+            lua_pop(L,1);
+
+            lua_pushinteger(L,3);
+            lua_gettable(L,-2);
+            int cle = lua_tointeger(L,-1);
+            lua_pop(L,1);
+
+            lua_pushinteger(L,4);
+            lua_gettable(L,-2);
+            int cre = lua_tointeger(L,-1);
+            lua_pop(L,1);
+
+            process_file(L,iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
          }
-         lua_pop(L,2);  
+         lua_pop(L,3);  
          break;
       case DT_DIR:
          if (strcmp(dp->d_name,".")==0 || strcmp(dp->d_name,"..")==0) 
@@ -339,12 +400,15 @@ int main(int argc, char* argv[]) {
       "function miconf_dname_hook(level,path,file)\n"
       "   return path..(file and (\"/\"..file) or \"\")\n"
       "end\n"
+      "function miconf_markup_hook()\n"
+      "   return {3,string.byte(\"=\"),string.byte(\"<\"),string.byte(\">\")}\n"
+      "end\n"
       "function miconf_fname_hook(level,pattern,path,file,type)\n"
       "   ofile,cnt = file:gsub(pattern,\"\")\n"
       "   if ofile and cnt==1 and ofile:len()>0 then\n"
-      "      return path..(file and (\"/\"..file) or \"\"), path..\"/\"..ofile\n"
+      "      return path..(file and (\"/\"..file) or \"\"), path..\"/\"..ofile, miconf_markup_hook()\n"
       "   else\n"
-      "      return nil,nil\n"
+      "      return nil,nil,nil\n"
       "   end\n"
       "end\n"
    ;
@@ -396,7 +460,40 @@ int main(int argc, char* argv[]) {
    if (!rflag) {
       const char* iname = argc>0 ? argv[0] : "-";
       const char* oname = argc>1 ? argv[1] : "-";
-      process_file(L,iname,oname,tflag,mflag,vflag,pattern);
+      lua_getglobal(L,"miconf_markup_hook");
+      if (lua_pcall(L, 0, 1, 0) != 0) {
+         fprintf(stderr,"error running lua function 'miconf_markup_hook': %s\n", lua_tostring(L,-1));
+         exit(1);
+      }
+
+      if (!lua_istable(L,-1)) {
+         fprintf(stderr,"'miconf_markup_hook' must return a table\n");
+         exit(1);
+      }
+
+      lua_pushinteger(L,1);
+      lua_gettable(L,-2);
+      int n = lua_tointeger(L,-1);
+      lua_pop(L,1);
+
+      lua_pushinteger(L,2);
+      lua_gettable(L,-2);
+      int cs = lua_tointeger(L,-1);
+      lua_pop(L,1);
+
+      lua_pushinteger(L,3);
+      lua_gettable(L,-2);
+      int cle = lua_tointeger(L,-1);
+      lua_pop(L,1);
+
+      lua_pushinteger(L,4);
+      lua_gettable(L,-2);
+      int cre = lua_tointeger(L,-1);
+      lua_pop(L,1);
+
+      process_file(L,iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
+
+      lua_pop(L,1);
    } else {
       const char* dname = argc>0 ? argv[0] : ".";
       lua_getglobal(L,"miconf_dname_hook");
