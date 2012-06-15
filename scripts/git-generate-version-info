@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 label=${1-release}
-pattern="$1-[0-9.]*"
+pattern="$1-[0-9]*"
 mode=${2-raw}
 ref="${3-HEAD}"
 
@@ -10,17 +10,19 @@ ref="${3-HEAD}"
 git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "label=$label" -v mode=$mode -v "ref=$ref" '
 {
    raw=$0
-   if( $2 == "" ) 
-      ver=$2 "0.0.0.0"
-   else
-      ver=$2 ".0.0.0.0"
+   ver=$2
+   if( $2 == "" ) {
+      verx=$2 "0.0.0.0"
+   } else {
+      verx=$2 ".0.0.0.0"
+   }
    ahead=$3
    id=substr($4,2,length($4))
    scm=substr($4,1,1)
    if(scm=="g") {
       scm="git";
    }
-   n=split(ver,vers,".");
+   n=split(verx,vers,".");
    if(mode=="c") {
       printf("#define %s_VERSION_RAW \"%s\"\n", label,raw);
       printf("#define %s_VERSION \"%s\"\n", label,ver);
@@ -67,8 +69,14 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("scm=\"%s\",\n", scm);
       printf("ref=\"%s\",\n", ref);
       printf("}\n");
+   } else if(mode=="tag") {
+      if( ahead==0 ) {
+         printf("%s",label "-" ver);
+      } else {
+         printf("%s",raw);
+      }
    } else { #raw
-      printf("%s",$0);
+      printf("%s",raw);
    }
 }
 '
