@@ -10,20 +10,24 @@ ref="${3-HEAD}"
 git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "label=$label" -v mode=$mode -v "ref=$ref" '
 {
    raw=$0
-   ver=$2
+   if( $2 == "" ) 
+      ver=$2 "0.0.0.0"
+   else
+      ver=$2 ".0.0.0.0"
    ahead=$3
    id=substr($4,2,length($4))
    scm=substr($4,1,1)
    if(scm=="g") {
       scm="git";
    }
-   n=split($2,vers,".");
+   n=split(ver,vers,".");
    if(mode=="c") {
       printf("#define %s_VERSION_RAW \"%s\"\n", label,raw);
       printf("#define %s_VERSION \"%s\"\n", label,ver);
       printf("#define %s_VERSION_MAJOR %s\n", label,vers[1]);
       printf("#define %s_VERSION_MINOR %s\n", label,vers[2]);
       printf("#define %s_VERSION_PATCH %s\n", label,vers[3]);
+      printf("#define %s_VERSION_UPDATE %s\n", label,vers[4]);
       printf("#define %s_VERSION_AHEAD %s\n", label,ahead);
       printf("#define %s_VERSION_ID \"%s\"\n", label,id);
       printf("#define %s_VERSION_SCM \"%s\"\n", label,scm);
@@ -34,6 +38,7 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("%s_VERSION_MAJOR=%s; export %s_VERSION_MAJOR\n", label,vers[1],label);
       printf("%s_VERSION_MINOR=%s; export %s_VERSION_MINOR\n", label,vers[2],label);
       printf("%s_VERSION_PATCH=%s; export %s_VERSION_PATCH\n", label,vers[3],label);
+      printf("%s_VERSION_UPDATE=%s; export %s_VERSION_UPDATE\n", label,vers[4],label);
       printf("%s_VERSION_AHEAD=%s; export %s_VERSION_AHEAD\n", label,ahead,label);
       printf("%s_VERSION_ID=\"%s\"; export %s_VERSION_ID\n", label,id,label);
       printf("%s_VERSION_SCM=\"%s\"; export %s_VERSION_SCM\n", label,scm,label);
@@ -44,6 +49,7 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("setenv %s_VERSION_MAJOR %s\n", label,vers[1]);
       printf("setenv %s_VERSION_MINOR %s\n", label,vers[2]);
       printf("setenv %s_VERSION_PATCH %s\n", label,vers[3]);
+      printf("setenv %s_VERSION_UPDATE %s\n", label,vers[4]);
       printf("setenv %s_VERSION_AHEAD %s\n", label,ahead);
       printf("setenv %s_VERSION_ID \"%s\"\n", label,id);
       printf("setenv %s_VERSION_SCM \"%s\"\n", label,scm);
@@ -55,6 +61,7 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("major=%s,\n", vers[1]);
       printf("minor=%s,\n", vers[2]);
       printf("patch=%s,\n", vers[3]);
+      printf("update=%s,\n", vers[4]);
       printf("ahead=%s,\n", ahead);
       printf("id=\"%s\",\n", id);
       printf("scm=\"%s\",\n", scm);
