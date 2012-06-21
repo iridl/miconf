@@ -110,6 +110,27 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("month=%d,\n", dc[2]);
       printf("day=%d,\n", dc[3]);
       printf("}\n");
+   } else if(mode=="xml") {
+      printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+      printf("<ver label=\"%s\">\n", label);
+      printf("   <raw>%s</raw>\n", raw);
+      printf("   <tag>%s</tag>\n", tag);
+      printf("   <version>%s</version>\n", ver);
+      printf("   <major>%d</major>\n", vers[1]);
+      printf("   <minor>%d</minor>\n", vers[2]);
+      printf("   <patch>%d</patch>\n", vers[3]);
+      printf("   <update>%d</update>\n", vers[4]);
+      printf("   <ahead>%d</ahead>\n", ahead);
+      printf("   <id>%s</id>\n", id);
+      printf("   <scm>%s</scm>\n", scm);
+      printf("   <ref>%s<ref>\n", ref);
+      printf("   <ts>%s</ts>\n", ts);
+      printf("   <date>%s</date>\n", tss[1]);
+      printf("   <time>%s</time>\n", tss[2] " " tss[3]);
+      printf("   <year>%d</year>\n", dc[1]);
+      printf("   <month>%d</month>\n", dc[2]);
+      printf("   <day>%d</day>\n", dc[3]);
+      printf("</ver>\n");
    } else if(mode=="version") {
       printf("%s",ver);
    } else if(mode=="major") {
