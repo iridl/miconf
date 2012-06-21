@@ -7,7 +7,12 @@ ref="${3-HEAD}"
 
 #echo "git-generate-version-info: '$label', '$pattern', '$mode', '$ref'"
 
-git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "label=$label" -v mode=$mode -v "ref=$ref" '
+if [[ $mode != "id" ]]; then
+   id=`"$0" "$label" id "$ref"`
+   ts=`git show --format="%ci" "$id" | head -1 | tr -d '\n'`
+fi
+
+git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "label=$label" -v "mode=$mode" -v "ref=$ref" -v "ts=$ts" '
 {
    raw=$0
    ver=$2
@@ -23,8 +28,17 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       scm="git";
    }
    n=split(verx,vers,".");
+   split(ts,tss," ");
+   split(tss[1],dc,"-");
+   split(tss[2],tc,":");
+   if( ahead==0 ) {
+      tag = label "-" ver;
+   } else {
+      tag = raw;
+   }
    if(mode=="c") {
       printf("#define %s_VERSION_RAW \"%s\"\n", label,raw);
+      printf("#define %s_VERSION_TAG \"%s\"\n", label,tag);
       printf("#define %s_VERSION \"%s\"\n", label,ver);
       printf("#define %s_VERSION_MAJOR %s\n", label,vers[1]);
       printf("#define %s_VERSION_MINOR %s\n", label,vers[2]);
@@ -34,8 +48,12 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("#define %s_VERSION_ID \"%s\"\n", label,id);
       printf("#define %s_VERSION_SCM \"%s\"\n", label,scm);
       printf("#define %s_VERSION_REF \"%s\"\n", label,ref);
+      printf("#define %s_VERSION_TS \"%s\"\n", label,ts);
+      printf("#define %s_VERSION_DATE \"%s\"\n", label,tss[1]);
+      printf("#define %s_VERSION_TIME \"%s\"\n", label,tss[2] " " tss[3]);
    } else if(mode=="sh") {
       printf("%s_VERSION_RAW=\"%s\"; export %s_VERSION_RAW\n", label,raw,label);
+      printf("%s_VERSION_TAG=\"%s\"; export %s_VERSION_TAG\n", label,tag,label);
       printf("%s_VERSION=\"%s\"; export %s_VERSION\n", label,ver,label);
       printf("%s_VERSION_MAJOR=%s; export %s_VERSION_MAJOR\n", label,vers[1],label);
       printf("%s_VERSION_MINOR=%s; export %s_VERSION_MINOR\n", label,vers[2],label);
@@ -45,8 +63,12 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("%s_VERSION_ID=\"%s\"; export %s_VERSION_ID\n", label,id,label);
       printf("%s_VERSION_SCM=\"%s\"; export %s_VERSION_SCM\n", label,scm,label);
       printf("%s_VERSION_REF=\"%s\"; export %s_VERSION_REF\n", label,ref,label);
+      printf("%s_VERSION_TS=\"%s\"; export %s_VERSION_TS\n", label,ts,label);
+      printf("%s_VERSION_DATE=\"%s\"; export %s_VERSION_DATE\n", label,tss[1],label);
+      printf("%s_VERSION_TIME=\"%s\"; export %s_VERSION_TIME\n", label,tss[2] " " tss[3],label);
    } else if(mode=="csh") {
       printf("setenv %s_VERSION_RAW \"%s\"\n", label,raw);
+      printf("setenv %s_VERSION_TAG \"%s\"\n", label,tag);
       printf("setenv %s_VERSION \"%s\"\n", label,ver);
       printf("setenv %s_VERSION_MAJOR %s\n", label,vers[1]);
       printf("setenv %s_VERSION_MINOR %s\n", label,vers[2]);
@@ -56,9 +78,13 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("setenv %s_VERSION_ID \"%s\"\n", label,id);
       printf("setenv %s_VERSION_SCM \"%s\"\n", label,scm);
       printf("setenv %s_VERSION_REF \"%s\"\n", label,ref);
+      printf("setenv %s_VERSION_TS \"%s\"\n", label,ts);
+      printf("setenv %s_VERSION_DATE \"%s\"\n", label,tss[1]);
+      printf("setenv %s_VERSION_TIME \"%s\"\n", label,tss[2] " " tss[3]);
    } else if(mode=="lua"||mode=="miconf") {
       printf("%s_VERSION = {\n", label);
       printf("raw=\"%s\",\n", raw);
+      printf("tag=\"%s\",\n", tag);
       printf("version=\"%s\",\n", ver);
       printf("major=%s,\n", vers[1]);
       printf("minor=%s,\n", vers[2]);
@@ -68,17 +94,38 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("id=\"%s\",\n", id);
       printf("scm=\"%s\",\n", scm);
       printf("ref=\"%s\",\n", ref);
+      printf("ts=\"%s\",\n", ts);
+      printf("date=\"%s\",\n", tss[1]);
+      printf("time=\"%s\",\n", tss[2] " " tss[3]);
       printf("}\n");
+   } else if(mode=="version") {
+      printf("%s",ver);
+   } else if(mode=="major") {
+      printf("%s",vers[1]);
+   } else if(mode=="minor") {
+      printf("%s",vers[2]);
+   } else if(mode=="patch") {
+      printf("%s",vers[3]);
+   } else if(mode=="update") {
+      printf("%s",vers[4]);
+   } else if(mode=="ahead") {
+      printf("%s",ahead);
+   } else if(mode=="ref") {
+      printf("%s",ref);
    } else if(mode=="tag") {
-      if( ahead==0 ) {
-         printf("%s",label "-" ver);
-      } else {
-         printf("%s",raw);
-      }
+      printf("%s",tag);
+   } else if(mode=="scm") {
+      printf("%s",scm);
+   } else if(mode=="ts") {
+      printf("%s",ts);
+   } else if(mode=="date") {
+      printf("%s",tss[1]);
+   } else if(mode=="time") {
+      printf("%s",tss[2] " " tss[3]);
+   } else if(mode=="id") {
+      printf("%s",id);
    } else { #raw
       printf("%s",raw);
    }
 }
 '
-
-
