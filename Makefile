@@ -3,7 +3,7 @@ PLAT ?= $(shell scripts/miconf-platform)
 
 INSTALL = install
 
-LUA_PLAT = $(PLAT)
+LUA_PLAT = posix
 SYSLIBS = 
 ifeq ($(PLAT),Linux)
    LUA_PLAT = linux
