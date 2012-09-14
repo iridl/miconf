@@ -1,34 +1,55 @@
 #!/bin/sh
 
 function usage {
-   echo "usage: `basename $0` backup-dir"
+   echo "usage: "
+   echo "   `basename $0` clone <url> <dir>.git"
+   echo "   `basename $0` update <backup-dir>"
    exit 1
 }
 
 function update_repo {
    ( 
    dir="$1"
+   #echo "Updating $dir..."
    cd "$dir";
    if [ $? -ne 0 ]; then
       echo "ERROR: Cannot 'cd' to '$dir'" >&2
       return 1
    fi
-   git remote update 2>&1 >/dev/null
+   git remote update origin >/dev/null 2>&1
    if [ $? -ne 0 ]; then
-      echo "ERROR: 'git remote update' failed in '$dir'" >&2
+      echo "ERROR: 'git remote update origin' failed in '$dir'" >&2
+      return 1
+   fi
+   git remote prune origin >/dev/null  2>&1
+   if [ $? -ne 0 ]; then
+      echo "ERROR: 'git remote prune origin' failed in '$dir'" >&2
       return 1
    fi
    )
 }
 
-if [ $# -ne 1 ]; then
+function clone_repo {
+   url=$1
+   dir=$2
+   git clone --mirror "$url" "$dir"
+   if [ $? -ne 0 ]; then
+      echo "ERROR: 'git clone --mirror \"$url\" \"$url\"' failed" >&2
+      return 1
+   fi
+}
+
+if [ $# -lt 1 ]; then
    usage
 fi
-dir=$1
+cmd=$1
 
-for o in $dir/*; do
-   for r in $o/*.git; do 
-      echo "Updating $r..."
-      update_repo $r
+if [ "$cmd" == "clone" ]; then
+   clone_repo $2 $3
+else # update
+   dir=$2
+   for r in `find "$dir" -type d -name '*.git'`; do
+      update_repo "$r"
    done
-done
+fi
+
