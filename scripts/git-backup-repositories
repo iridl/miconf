@@ -32,10 +32,15 @@ function update_repo {
 function clone_repo {
    url=$1
    dir=$2
-   git clone --mirror "$url" "$dir"
-   if [ $? -ne 0 ]; then
-      echo "ERROR: 'git clone --mirror \"$url\" \"$url\"' failed" >&2
-      return 1
+   if [ ! -e "$dir" ]; then
+      echo "Cloning '$url' into '$dir'"
+      git clone --mirror "$url" "$dir"
+      if [ $? -ne 0 ]; then
+         echo "ERROR: 'git clone --mirror \"$url\" \"$dir\"' failed" >&2
+         return 1
+      fi
+   else
+      echo "Skipping '$url', '$dir' exists"
    fi
 }
 
