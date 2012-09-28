@@ -123,7 +123,7 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("   <ahead>%d</ahead>\n", ahead);
       printf("   <id>%s</id>\n", id);
       printf("   <scm>%s</scm>\n", scm);
-      printf("   <ref>%s<ref>\n", ref);
+      printf("   <ref>%s</ref>\n", ref);
       printf("   <ts>%s</ts>\n", ts);
       printf("   <date>%s</date>\n", tss[1]);
       printf("   <time>%s</time>\n", tss[2] " " tss[3]);
