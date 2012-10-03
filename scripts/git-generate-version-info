@@ -7,7 +7,7 @@ ref="${3-HEAD}"
 
 #echo "git-generate-version-info: '$label', '$pattern', '$mode', '$ref'"
 
-if [[ $mode != "id" ]]; then
+if [ $mode != "id" ]; then
    id=`"$0" "$label" id "$ref"`
    ts=`git show --format="%ci" "$id" | head -1 | tr -d '\n'`
 fi
