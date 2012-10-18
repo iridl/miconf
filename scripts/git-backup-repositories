@@ -10,7 +10,7 @@ function usage {
 function update_repo {
    ( 
    dir="$1"
-   #echo "Updating $dir..."
+   #echo "Updating '$dir'..."
    cd "$dir";
    if [ $? -ne 0 ]; then
       echo "ERROR: Cannot 'cd' to '$dir'" >&2
@@ -33,14 +33,15 @@ function clone_repo {
    url=$1
    dir=$2
    if [ ! -e "$dir" ]; then
-      echo "Cloning '$url' into '$dir'"
+      echo "Cloning '$url' into '$dir'..."
       git clone --mirror "$url" "$dir"
       if [ $? -ne 0 ]; then
          echo "ERROR: 'git clone --mirror \"$url\" \"$dir\"' failed" >&2
          return 1
       fi
    else
-      echo "Skipping '$url', '$dir' exists"
+      echo "Updating '$dir'..."
+      update_repo "$dir"
    fi
 }
 

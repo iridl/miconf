@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh
 
 function usage {
    echo "usage: "
@@ -15,12 +15,11 @@ acct=$2
 user=$3
 pass=$4
 
-cd "$1"
-curl -q -u $user:$pass https://api.bitbucket.org/1.0/users/$acct | python <<eos | sh
+tn=/tmp/bb$$
 
+cat <<eos >$tn.py
 import sys
 import json
-
 
 s = ''.join(sys.stdin.readlines())
 x = json.loads(s)
@@ -33,7 +32,10 @@ for r in rs:
   print("git-backup-repositories clone \"git@bitbucket.org:"+u+"/"+n+".git\" \""+u+"/"+n+".git\"")
   if w:
      print("git-backup-repositories clone \"git@bitbucket.org:"+u+"/"+n+".git/wiki\" \""+u+"/"+n+".wiki.git\"")
-
 eos
+
+cd "$1"
+curl -s -u $user:$pass https://api.bitbucket.org/1.0/users/$acct | python $tn.py | sh
+rm -f $tn.py
 
 exit 0;
