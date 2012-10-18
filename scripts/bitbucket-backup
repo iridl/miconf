@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 function usage {
    echo "usage: "
@@ -35,7 +35,9 @@ for r in rs:
 eos
 
 cd "$1"
-curl -s -u $user:$pass https://api.bitbucket.org/1.0/users/$acct | python $tn.py | sh
-rm -f $tn.py
+curl -s -u $user:$pass https://api.bitbucket.org/1.0/users/$acct >$tn.json
+python $tn.py <$tn.json >$tn.sh
+sh <$tn.sh
+rm -f $tn.py $tn.json $tn.sh
 
 exit 0;

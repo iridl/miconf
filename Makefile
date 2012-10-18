@@ -31,3 +31,5 @@ install: build
 	$(INSTALL) scripts/git-find-large $(PREFIX)/bin
 	$(INSTALL) scripts/git-generate-version-info $(PREFIX)/bin
 	$(INSTALL) scripts/git-update-timestamp $(PREFIX)/bin
+	$(INSTALL) scripts/git-backup-repositories $(PREFIX)/bin
+	$(INSTALL) scripts/bitbucket-backup $(PREFIX)/bin
