@@ -1,0 +1,81 @@
+#!/bin/sh -e
+#
+# releases the latest commit from current branch of a repo
+#
+
+progname=`basename $0`
+if [ $# -lt 3 ]; then
+   echo "usage: "
+   echo "   $progname <label> <release_dir> <repo_dir>"
+   exit 1
+
+fi
+
+label="$1"
+prefix="$2"
+repo="$3"
+
+lockfile="$prefix/release.lock"
+
+# one time manual setup:
+#   cd to parent of $repo dir
+#   git clone --recursive . . .
+#   cd <repo>
+#   git checkout release   
+#
+
+echo "'$label' release to '$prefix' started: `date`"
+
+if [ ! -f "$lockfile" ]; then
+   touch "$lockfile"
+else 
+   echo "If you would like me to proceed, please make sure there are no running '$progname \"$prefix\" ...' processes, and then remove '$lockfile'."
+   exit 1;
+fi
+
+if [ ! -e "$prefix" ]; then
+   echo "Creating '$prefix'..."
+   install -d "$prefix"
+fi
+
+cd "$repo"
+
+git pull
+ver=`git-generate-version-info $label tag`
+if [ -h "$prefix/current" ]; then
+   rver=`readlink -n "$prefix/current"`
+else
+   rver=""
+fi
+
+echo "ver=$ver, rver=$rver"
+
+if [ "$ver" == "$rver" ]; then 
+   echo "'$repo' is up-to-date: $ver"
+else
+   git reset --hard
+   git clean -f -d
+   git submodule update --init --recursive
+   make tarball
+
+   cd "$prefix"
+
+   tar xfz "$repo/$ver.tgz"
+   if [ -h backup ]; then
+      rm -rf `readlink -n backup`
+      rm backup
+   fi
+   if [ -h current ]; then
+      ln -s `readlink -n current` backup
+      rm current
+   fi
+   ln -s "$ver" current
+
+   echo "'$repo' has been upgraded: $rver -> $ver"
+fi
+
+rm "$lockfile"
+
+echo "'$label' release to '$prefix' completed: `date`"
+exit 0
+
