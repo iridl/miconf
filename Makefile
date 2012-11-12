@@ -33,3 +33,5 @@ install: build
 	$(INSTALL) scripts/git-update-timestamp $(PREFIX)/bin
 	$(INSTALL) scripts/git-backup-repositories $(PREFIX)/bin
 	$(INSTALL) scripts/bitbucket-backup $(PREFIX)/bin
+	$(INSTALL) scripts/git-release-tarball $(PREFIX)/bin
+
