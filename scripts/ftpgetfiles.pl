@@ -49,7 +49,7 @@ foreach $x (@xs) {
          print "dfile '$rfn', dsize '$dsize', dmdtm '$dmdtm', zflag '$zflag'\n";
 
          if ($y =~ $rexf) {
-            if (!defined($size) || !defined($mdtm) || $mdtm > $dmdtm || $size != $dsize) {
+            if (!defined($size) || !defined($mdtm) || $mdtm > $dmdtm || $size > $dsize) { # assumption size of uncompressed file >= size of compressed file 
                $ftp->get($y,$dfn) or die "get of '$fn' -> '$dfn' failed ", $ftp->message;
                print "got $fn\n"
             } else {
