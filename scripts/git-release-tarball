@@ -54,7 +54,7 @@ if [ "$ver" == "$rver" ]; then
    echo "'$repo' is up-to-date: $ver"
 else
    git reset --hard
-   git clean -f -d
+   git clean -f -d -x
    git submodule update --init --recursive
    make tarball
 
