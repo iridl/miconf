@@ -110,6 +110,46 @@ git describe --tags --long --abbrev=40 --match "$pattern" "$ref" | awk -F - -v "
       printf("month=%d,\n", dc[2]);
       printf("day=%d,\n", dc[3]);
       printf("}\n");
+   } else if(mode=="nodejs") {
+      printf("exports.%s_version = {\n", label);
+      printf("raw: \"%s\",\n", raw);
+      printf("tag: \"%s\",\n", tag);
+      printf("version: \"%s\",\n", ver);
+      printf("major: %d,\n", vers[1]);
+      printf("minor: %d,\n", vers[2]);
+      printf("patch: %d,\n", vers[3]);
+      printf("update: %d,\n", vers[4]);
+      printf("ahead: %d,\n", ahead);
+      printf("id: \"%s\",\n", id);
+      printf("scm: \"%s\",\n", scm);
+      printf("ref: \"%s\",\n", ref);
+      printf("ts: \"%s\",\n", ts);
+      printf("date: \"%s\",\n", tss[1]);
+      printf("time: \"%s\",\n", tss[2] " " tss[3]);
+      printf("year: %d,\n", dc[1]);
+      printf("month: %d,\n", dc[2]);
+      printf("day: %d\n", dc[3]);
+      printf("}\n");
+   } else if(mode=="json") {
+      printf("{\n", label);
+      printf("\"raw\": \"%s\",\n", raw);
+      printf("\"tag\": \"%s\",\n", tag);
+      printf("\"version\": \"%s\",\n", ver);
+      printf("\"major\": %d,\n", vers[1]);
+      printf("\"minor\": %d,\n", vers[2]);
+      printf("\"patch\": %d,\n", vers[3]);
+      printf("\"update\": %d,\n", vers[4]);
+      printf("\"ahead\": %d,\n", ahead);
+      printf("\"id\": \"%s\",\n", id);
+      printf("\"scm\": \"%s\",\n", scm);
+      printf("\"ref\": \"%s\",\n", ref);
+      printf("\"ts\": \"%s\",\n", ts);
+      printf("\"date\": \"%s\",\n", tss[1]);
+      printf("\"time\": \"%s\",\n", tss[2] " " tss[3]);
+      printf("\"year\": %d,\n", dc[1]);
+      printf("\"month\": %d,\n", dc[2]);
+      printf("\"day\": %d\n", dc[3]);
+      printf("}\n");
    } else if(mode=="xml") {
       printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
       printf("<ver label=\"%s\">\n", label);
