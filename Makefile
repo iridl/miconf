@@ -27,6 +27,8 @@ clean distclean:
 install: build
 	$(INSTALL) -d $(PREFIX)/bin
 	$(INSTALL) miconf/miconf $(PREFIX)/bin
+	$(INSTALL) lua/src/luac $(PREFIX)/bin
+	$(INSTALL) lua/src/lua $(PREFIX)/bin
 	$(INSTALL) scripts/miconf-platform $(PREFIX)/bin
 	$(INSTALL) scripts/git-find-large $(PREFIX)/bin
 	$(INSTALL) scripts/git-generate-version-info $(PREFIX)/bin
