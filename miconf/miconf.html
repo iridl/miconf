@@ -58,37 +58,43 @@ miconf [options] template_file output_file
 
 <tbody>
 <tr>
-	<td style="text-align:left;">-c file</td>
-	<td style="text-align:left;">&#8216;config.lua&#8217;</td>
+	<td style="text-align:left;"><code>-c file</code></td>
+	<td style="text-align:left;"><code>'config.lua'</code></td>
 	<td style="text-align:left;">config file</td>
-	<td style="text-align:left;">-c system.config</td>
+	<td style="text-align:left;"><code>-c system.config</code></td>
 </tr>
 <tr>
-	<td style="text-align:left;">-e block</td>
-	<td style="text-align:left;">&#8217;&#8217;</td>
+	<td style="text-align:left;"><code>-e block</code></td>
+	<td style="text-align:left;"><code>''</code></td>
 	<td style="text-align:left;">config block</td>
-	<td style="text-align:left;">-e &#8216;host=&#8220;foo&#8221;; ip=&#8220;127.0.0.1&#8221;&#8217;</td>
+	<td style="text-align:left;"><code>-e 'host=&quot;foo&quot;; ip=&quot;127.0.0.1&quot;'</code></td>
 </tr>
 <tr>
-	<td style="text-align:left;">-p pattern</td>
-	<td style="text-align:left;">&#8216;[.]template$&#8217;</td>
-	<td style="text-align:left;">template file name pattern</td>
-	<td style="text-align:left;">-p &#8216;^boo[.]&#8217;</td>
+	<td style="text-align:left;"><code>-p pattern</code></td>
+	<td style="text-align:left;"><code>'[.]template$'</code></td>
+	<td style="text-align:left;">template file name pattern (see <code>miconf_fname_hook</code>)</td>
+	<td style="text-align:left;"><code>-p '[.]miconf([.]?)'</code></td>
 </tr>
 <tr>
-	<td style="text-align:left;">-t</td>
+	<td style="text-align:left;"><code>-s replace</code></td>
+	<td style="text-align:left;"><code>''</code></td>
+	<td style="text-align:left;">file name pattern replacement (see <code>miconf_fname_hook</code>)</td>
+	<td style="text-align:left;"><code>-s '%1'</code></td>
+</tr>
+<tr>
+	<td style="text-align:left;"><code>-t</code></td>
 	<td style="text-align:left;"></td>
 	<td style="text-align:left;">preserve temp files</td>
 	<td style="text-align:left;"></td>
 </tr>
 <tr>
-	<td style="text-align:left;">-m</td>
+	<td style="text-align:left;"><code>-m</code></td>
 	<td style="text-align:left;"></td>
 	<td style="text-align:left;">disable chmod</td>
 	<td style="text-align:left;"></td>
 </tr>
 <tr>
-	<td style="text-align:left;">-v</td>
+	<td style="text-align:left;"><code>-v</code></td>
 	<td style="text-align:left;"></td>
 	<td style="text-align:left;">verbose</td>
 	<td style="text-align:left;"></td>
@@ -98,18 +104,22 @@ miconf [options] template_file output_file
 <h2 id="defaulthooks">Default hooks</h2>
 
 <p>The following &#8220;hooks&#8221; are used if you do not redefine them in your configuration files.
-These functions get called when <code>miconf</code> is run in recoursive mode using <code>-r</code> option. <code>miconf_dname_hook</code> is invoked for each subdirectory, and <code>miconf_fname_hook</code> is called for each regular file. <code>miconf_dname_hook</code> has to return a full path to the subdirectory to traverse, or <code>nil</code> to ignore the whole subdirectory. <code>miconf_fname_hook</code> has to return input and output file paths, or <code>(nil,nil)</code> in order to ignore the file. These functions allow you customize <code>miconf</code> behavior, i.e. what parts of your tree and what files to process, and how to come up with output file names. For example, you may keep your templates at a separate directory and output files into your output tree, etc.</p>
+These functions get called when <code>miconf</code> is run in recoursive mode using <code>-r</code> option. <code>miconf_dname_hook</code> is invoked for each subdirectory, and <code>miconf_fname_hook</code> is called for each regular file. <code>miconf_dname_hook</code> has to return a full path to the subdirectory to traverse, or <code>nil</code> to ignore the whole subdirectory. <code>miconf_fname_hook</code> has to return input file path, output file path and markup syntax description table (see <code>miconf_markup_hook</code> below), or <code>(nil,nil,nil)</code> if you want to ignore the file. These functions allow for customization of miconf&#8217;s behavior, i.e. what parts of your tree and what files to process, and how to come up with output file names. For example, you may keep your templates at a separate directory and output files into your output tree, etc. You may adjust miconf&#8217;s markup syntax with <code>miconf_markup_hook</code>.</p>
 
 <pre><code>function miconf_dname_hook(level,path,file)
    return path..(file and (&quot;/&quot;..file) or &quot;&quot;)
 end
 
-function miconf_fname_hook(level,pattern,path,file,type)
-   ofile,cnt = file:gsub(pattern,&quot;&quot;)
+function miconf_markup_hook()
+   return {3,string.byte(&quot;=&quot;),string.byte(&quot;&lt;&quot;),string.byte(&quot;&gt;&quot;)}
+end
+
+function miconf_fname_hook(level,pattern,path,file,type,replace)
+   ofile,cnt = file:gsub(pattern,replace,1)
    if ofile and cnt==1 and ofile:len()&gt;0 then
-      return path..(file and (&quot;/&quot;..file) or &quot;&quot;), path..&quot;/&quot;..ofile
+      return path..(file and (&quot;/&quot;..file) or &quot;&quot;), path..&quot;/&quot;..ofile, miconf_markup_hook()
    else
-      return nil,nil
+      return nil,nil,nil
    end
 end
 </code></pre>
@@ -118,7 +128,8 @@ end
 
 <p><strong><code>$ cat sample.config</code></strong></p>
 
-<pre><code>b = 200
+<pre><code>a = a or 5
+b = 200
 c = &quot;Hello, world!&quot;
 if a &lt; 100 then
    d = {x=a, &quot;boo&quot;}
@@ -131,7 +142,7 @@ function square(x)
 end
 </code></pre>
 
-<p><strong><code>$ cat file.template</code></strong></p>
+<p><strong><code>$ cat sample.template</code></strong></p>
 
 <pre><code>text0
 text1,&lt;&lt;&lt;c&gt;&gt;&gt;,text2

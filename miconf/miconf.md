@@ -31,37 +31,44 @@ When `miconf` is run in recoursive `-r` mode, it traverses `directory` recoursiv
       
 ##Options
 
-| Option  | Default value | Description | Example | 
-| :--- | :--- | :--- | :--- |
-| -c file | 'config.lua' | config file | -c system.config |
-| -e block | '' | config block | -e 'host="foo"; ip="127.0.0.1"'|
-| -p pattern | '[.]template$' | template file name pattern | -p '^boo[.]' |
-| -t | | preserve temp files | |
-| -m | | disable chmod | |
-| -v | | verbose | |
+| Option 	| Default value 	| Description 	| Example 	| 
+| :--- 	| :--- 	| :--- 	| :--- 	|
+| `-c file` 	| `'config.lua'` 	| config file 	| `-c system.config` 	|
+| `-e block` 	| `''` 	| config block 	| `-e 'host="foo"; ip="127.0.0.1"'`	|
+| `-p pattern` 	| `'[.]template$'` 	| template file name pattern (see `miconf_fname_hook`) 	| `-p '[.]miconf([.]?)'` 	|
+| `-s replace` 	| `''` 	| file name pattern replacement (see `miconf_fname_hook`) 	| `-s '%1'` 	|
+| `-t` 	| 	| preserve temp files 	| 	|
+| `-m` 	| 	| disable chmod 	| 	|
+| `-v` 	| 	| verbose 	| 	|
 
 ##Default hooks
 
 The following "hooks" are used if you do not redefine them in your configuration files. 
-These functions get called when `miconf` is run in recoursive mode using `-r` option. `miconf_dname_hook` is invoked for each subdirectory, and `miconf_fname_hook` is called for each regular file. `miconf_dname_hook` has to return a full path to the subdirectory to traverse, or `nil` to ignore the whole subdirectory. `miconf_fname_hook` has to return input and output file paths, or `(nil,nil)` in order to ignore the file. These functions allow you customize `miconf` behavior, i.e. what parts of your tree and what files to process, and how to come up with output file names. For example, you may keep your templates at a separate directory and output files into your output tree, etc.
+These functions get called when `miconf` is run in recoursive mode using `-r` option. `miconf_dname_hook` is invoked for each subdirectory, and `miconf_fname_hook` is called for each regular file. `miconf_dname_hook` has to return a full path to the subdirectory to traverse, or `nil` to ignore the whole subdirectory. `miconf_fname_hook` has to return input file path, output file path and markup syntax description table (see `miconf_markup_hook` below), or `(nil,nil,nil)` if you want to ignore the file. These functions allow for customization of miconf's behavior, i.e. what parts of your tree and what files to process, and how to come up with output file names. For example, you may keep your templates at a separate directory and output files into your output tree, etc. You may adjust miconf's markup syntax with `miconf_markup_hook`.
 
 	function miconf_dname_hook(level,path,file)
 	   return path..(file and ("/"..file) or "")
 	end
 	
-	function miconf_fname_hook(level,pattern,path,file,type)
-	   ofile,cnt = file:gsub(pattern,"")
+	function miconf_markup_hook()
+	   return {3,string.byte("="),string.byte("<"),string.byte(">")}
+	end
+
+	function miconf_fname_hook(level,pattern,path,file,type,replace)
+	   ofile,cnt = file:gsub(pattern,replace,1)
 	   if ofile and cnt==1 and ofile:len()>0 then
-	      return path..(file and ("/"..file) or ""), path.."/"..ofile
+	      return path..(file and ("/"..file) or ""), path.."/"..ofile, miconf_markup_hook()
 	   else
-	      return nil,nil
+	      return nil,nil,nil
 	   end
 	end
+
 
 ##Example
 
 **`$ cat sample.config`**
 
+	a = a or 5
 	b = 200
 	c = "Hello, world!"
 	if a < 100 then
@@ -74,7 +81,8 @@ These functions get called when `miconf` is run in recoursive mode using `-r` op
 	   return x*x
 	end
 
-**`$ cat file.template`**
+
+**`$ cat sample.template`**
 
 	text0
 	text1,<<<c>>>,text2

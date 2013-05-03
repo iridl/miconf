@@ -284,7 +284,7 @@ void process_file(lua_State *L, const char* iname, const char* oname, int tflag,
    }
 }
 
-void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vflag, const char* pattern, int level) {
+void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vflag, const char* pattern, const char* replace, int level) {
 
    if (vflag) {
       fprintf(stderr, "processing dir(%d) '%s'\n", level, dname);
@@ -305,7 +305,8 @@ void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vfla
          lua_pushstring(L,dname);
          lua_pushstring(L,dp->d_name);
          lua_pushinteger(L,dp->d_type);
-         if (lua_pcall(L, 5, 3, 0) != 0) {
+         lua_pushstring(L,replace);
+         if (lua_pcall(L, 6, 3, 0) != 0) {
             fprintf(stderr,"error running lua function 'miconf_fname_hook': %s\n", lua_tostring(L,-1));
             exit(1);
          }
@@ -349,7 +350,7 @@ void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vfla
             exit(1);
          }
          if (lua_isstring(L,-1)) {
-            process_dir(L,lua_tostring(L,-1),tflag,mflag,vflag,pattern,level+1);
+            process_dir(L,lua_tostring(L,-1),tflag,mflag,vflag,pattern,replace,level+1);
          }
          lua_pop(L,1);
          break;
@@ -376,7 +377,8 @@ void usage() {
       fprintf(stderr,"Options:\n");
       fprintf(stderr,"   -c file -- config file, for example: -c config.lua \n");
       fprintf(stderr,"   -e block -- config block, for example: -e 'host=\"foo\"; ip=\"127.0.0.1\"' \n");
-      fprintf(stderr,"   -p pattern -- template file name pattern (default: '[.]template$')\n");
+      fprintf(stderr,"   -p pattern -- template file name pattern (see 'miconf_fname_hook', default: '[.]template$')\n");
+      fprintf(stderr,"   -s replace -- file name pattern replacement (see 'miconf_fname_hook', default: '')\n");
       fprintf(stderr,"   -t -- preserve temp files\n");
       fprintf(stderr,"   -m -- disable chmod\n");
       fprintf(stderr,"   -v -- verbose\n");
@@ -392,6 +394,7 @@ int main(int argc, char* argv[]) {
    int mflag = 0;
    int vflag = 0;
    const char* pattern = "[.]template$";
+   const char* replace = "";
    lua_State *L = luaL_newstate();
    luaL_openlibs(L);
 
@@ -403,8 +406,8 @@ int main(int argc, char* argv[]) {
       "function miconf_markup_hook()\n"
       "   return {3,string.byte(\"=\"),string.byte(\"<\"),string.byte(\">\")}\n"
       "end\n"
-      "function miconf_fname_hook(level,pattern,path,file,type)\n"
-      "   ofile,cnt = file:gsub(pattern,\"\")\n"
+      "function miconf_fname_hook(level,pattern,path,file,type,replace)\n"
+      "   ofile,cnt = file:gsub(pattern,replace,1)\n"
       "   if ofile and cnt==1 and ofile:len()>0 then\n"
       "      return path..(file and (\"/\"..file) or \"\"), path..\"/\"..ofile, miconf_markup_hook()\n"
       "   else\n"
@@ -419,7 +422,7 @@ int main(int argc, char* argv[]) {
       exit(1);
    }
 
-   while ((ch = getopt(argc, argv, "hVrtmvp:e:c:")) != -1) {
+   while ((ch = getopt(argc, argv, "hVrtmvp:s:e:c:")) != -1) {
       switch (ch) {
       case 'V':
          version();
@@ -435,6 +438,7 @@ int main(int argc, char* argv[]) {
       case 'm': mflag = 1; break;
       case 'v': vflag = 1; break;
       case 'p': pattern = optarg; break;
+      case 's': replace = optarg; break;
       case 'c':
          if (luaL_dofile(L,optarg)!=0) {
             fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),optarg);
@@ -505,7 +509,7 @@ int main(int argc, char* argv[]) {
          exit(1);
       }
       if (lua_isstring(L,-1)) {
-         process_dir(L,lua_tostring(L,-1),tflag,mflag,vflag,pattern,1);
+         process_dir(L,lua_tostring(L,-1),tflag,mflag,vflag,pattern,replace,1);
       }
       lua_pop(L,1);
    }
