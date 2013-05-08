@@ -401,7 +401,11 @@ int main(int argc, char* argv[]) {
 
    const char* hooks = 
       "function miconf_dname_hook(level,path,file)\n"
-      "   return path..(file and (\"/\"..file) or \"\")\n"
+      "   if file == \".git\" then\n"
+      "      return nil\n"
+      "   else\n"
+      "      return path..(file and (\"/\"..file) or \"\")\n"
+      "   end\n"
       "end\n"
       "function miconf_markup_hook()\n"
       "   return {3,string.byte(\"=\"),string.byte(\"<\"),string.byte(\">\")}\n"
