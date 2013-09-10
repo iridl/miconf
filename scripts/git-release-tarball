@@ -40,6 +40,9 @@ fi
 
 cd "$repo"
 
+git reset --hard
+git clean -fdx
+git submodule update --init --recursive
 git pull
 ver=`git-generate-version-info $label tag`
 if [ -h "$prefix/current" ]; then
@@ -54,7 +57,7 @@ if [ "$ver" == "$rver" ]; then
    echo "'$repo' is up-to-date: $ver"
 else
    git reset --hard
-   git clean -f -d -x
+   git clean -fdx
    git submodule update --init --recursive
    make tarball
 
