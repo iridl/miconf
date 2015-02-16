@@ -59,7 +59,7 @@ else
    git reset --hard
    git clean -fdx
    git submodule update --init --recursive
-   make tarball
+   make -j 8 tarball
 
    cd "$prefix"
 
