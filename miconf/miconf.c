@@ -433,7 +433,7 @@ int main(int argc, char* argv[]) {
          exit(0);
       case 'h':
          usage();
-         fprintf(stderr,"Default config:\n\n",hooks);
+         fprintf(stderr,"Default config:\n\n");
          fprintf(stderr,"%s\n",hooks);
          fprintf(stderr,"----\n\n");
          exit(0);
