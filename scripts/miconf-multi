@@ -39,9 +39,9 @@ while True:
     if not tok: 
         break      # No more input
     if tok.type == 'OPEN' or tok.type == 'CONT':
-       tlang = tok.value[len(tok.value)-3:len(tok.value)-1]
+       tlang = tok.value[3:len(tok.value)-1]
     elif tok.type == 'OPENN' or tok.type == 'CONTN':
-       tlang = tok.value[len(tok.value)-4:len(tok.value)-2]
+       tlang = tok.value[3:len(tok.value)-2]
     elif tok.type == 'CLOSE' or tok.type == 'CLOSEN':
        tlang = None
     elif not tlang or tlang == lang:
