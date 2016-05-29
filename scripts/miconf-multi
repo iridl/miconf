@@ -1,0 +1,48 @@
+#!/usr/bin/python
+import sys
+import ply.lex as lex
+
+iname = sys.argv[1]
+oname = sys.argv[2]
+lang  = sys.argv[3]
+
+tokens = ('OPEN','CONT','CLOSE','newline','CHAR')
+
+t_OPEN    = r'\[\[\[[a-zA-Z_]+:'
+t_CONT    = r'\|\|\|[a-zA-Z_]+:'
+t_CLOSE   = r'\]\]\]'
+t_CHAR    = r'.'
+
+def t_newline(t):
+    r'\n+'
+    t.lexer.lineno += len(t.value)
+    return t
+
+def t_error(t):
+    print("Illegal character '%s'" % t.value[0])
+    t.lexer.skip(1)
+
+lexer = lex.lex()
+
+fi = open(iname,'r')
+si = fi.read()
+fi.close()
+
+so = ''
+tlang = None;
+lexer.input(si)
+while True:
+    tok = lexer.token()
+    if not tok: 
+        break      # No more input
+    if tok.type == 'OPEN' or tok.type == 'CONT':
+       tlang = tok.value[3:len(tok.value)-1]
+    elif tok.type == 'CLOSE':
+       tlang = None
+    elif not tlang or tlang == lang:
+       so = so + tok.value
+    #print(tlang,tok.value,lexer.lineno)
+
+fo = open(oname,'w')
+fo.write(so)
+fo.close()
