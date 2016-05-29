@@ -6,15 +6,18 @@ iname = sys.argv[1]
 oname = sys.argv[2]
 lang  = sys.argv[3]
 
-tokens = ('OPEN','CONT','CLOSE','newline','CHAR')
+tokens = ('OPEN','CONT','CLOSE','OPENN','CONTN','CLOSEN','newline','CHAR')
 
 t_OPEN    = r'\[\[\[[a-zA-Z_]+:'
 t_CONT    = r'\|\|\|[a-zA-Z_]+:'
 t_CLOSE   = r'\]\]\]'
+t_OPENN    = r'(?m)^\[\[\[[a-zA-Z_]+:\n'
+t_CONTN    = r'(?m)^\|\|\|[a-zA-Z_]+:\n'
+t_CLOSEN   = r'(?m)^\]\]\]\n'
 t_CHAR    = r'.'
 
 def t_newline(t):
-    r'\n+'
+    r'\n'
     t.lexer.lineno += len(t.value)
     return t
 
@@ -36,13 +39,16 @@ while True:
     if not tok: 
         break      # No more input
     if tok.type == 'OPEN' or tok.type == 'CONT':
-       tlang = tok.value[3:len(tok.value)-1]
-    elif tok.type == 'CLOSE':
+       tlang = tok.value[len(tok.value)-3:len(tok.value)-1]
+    elif tok.type == 'OPENN' or tok.type == 'CONTN':
+       tlang = tok.value[len(tok.value)-4:len(tok.value)-2]
+    elif tok.type == 'CLOSE' or tok.type == 'CLOSEN':
        tlang = None
     elif not tlang or tlang == lang:
        so = so + tok.value
-    #print(tlang,tok.value,lexer.lineno)
+    print(tlang,tok,lexer.lineno)
 
 fo = open(oname,'w')
 fo.write(so)
 fo.close()
+
