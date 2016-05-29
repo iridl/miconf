@@ -46,7 +46,7 @@ while True:
        tlang = None
     elif not tlang or tlang == lang:
        so = so + tok.value
-    print(tlang,tok,lexer.lineno)
+    #print(tlang,tok,lexer.lineno)
 
 fo = open(oname,'w')
 fo.write(so)
