@@ -30,6 +30,8 @@ install: build
 	$(INSTALL) lua/src/luac $(PREFIX)/bin
 	$(INSTALL) lua/src/lua $(PREFIX)/bin
 	$(INSTALL) scripts/miconf-platform $(PREFIX)/bin
+	$(INSTALL) scripts/miconf-multi $(PREFIX)/bin
+	$(INSTALL) scripts/miconf-traverse $(PREFIX)/bin
 	$(INSTALL) scripts/git-find-large $(PREFIX)/bin
 	$(INSTALL) scripts/git-generate-version-info $(PREFIX)/bin
 	$(INSTALL) scripts/git-update-timestamp $(PREFIX)/bin

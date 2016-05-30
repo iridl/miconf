@@ -12,6 +12,8 @@ replace = sys.argv[4]
 excludePattern = sys.argv[5]
 cmd = sys.argv[6]
 
+ecode = 0
+
 for dirName, subdirList, fileList in os.walk(rootDir):
    if not excludePattern or not re.search(excludePattern, dirName):
       #print("miconf-traverse: processing directory: '%s'" % dirName)
@@ -24,6 +26,8 @@ for dirName, subdirList, fileList in os.walk(rootDir):
             command = cmd % (fullInName, fullOutName)
             print "miconf-traverse: running: '%s' . . . " % command,
             ret = os.system(command)
+            if ret:
+               ecode = ret
             print "exit code: %d" % ret,
             imode = stat.S_IMODE(os.stat(fullInName).st_mode)
             if os.path.exists(fullOutName):
@@ -33,3 +37,4 @@ for dirName, subdirList, fileList in os.walk(rootDir):
                   print ", chmod: %d" % imode,
             print ""
 
+sys.exit(ecode)
