@@ -1,0 +1,22 @@
+#!/usr/bin/python
+import os
+import sys
+import re
+ 
+rootDir = os.path.abspath(sys.argv[1])
+prefix = sys.argv[2] if sys.argv[2] else rootDir
+pattern = sys.argv[3]
+replace = sys.argv[4]
+excludePattern = sys.argv[5]
+cmd = sys.argv[6]
+
+for dirName, subdirList, fileList in os.walk(rootDir):
+   if not excludePattern or not re.match(excludePattern, dirName):
+      #print('processing directory: %s' % dirName)
+      odirName = re.sub("^"+rootDir, prefix, dirName, 1)
+      for fname in fileList:
+         (ofname,n) = re.subn(pattern, replace, fname, 1)
+         if n == 1: 
+            command = cmd % (dirName + '/' + fname, odirName + '/' + ofname)
+            print(command)
+
