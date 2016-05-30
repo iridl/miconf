@@ -1,5 +1,9 @@
 # README
 
+## Dependencies
+
+* miconf-multi requires python and ply
+
 ## Build and Install
 
 * Make sure the following libraries are installed, for example:
