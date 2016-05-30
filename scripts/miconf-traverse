@@ -2,8 +2,10 @@
 import os
 import sys
 import re
+import stat
  
-rootDir = os.path.abspath(sys.argv[1])
+#rootDir = os.path.abspath(sys.argv[1])
+rootDir = sys.argv[1]
 prefix = sys.argv[2] if sys.argv[2] else rootDir
 pattern = sys.argv[3]
 replace = sys.argv[4]
@@ -11,12 +13,23 @@ excludePattern = sys.argv[5]
 cmd = sys.argv[6]
 
 for dirName, subdirList, fileList in os.walk(rootDir):
-   if not excludePattern or not re.match(excludePattern, dirName):
-      #print('processing directory: %s' % dirName)
+   if not excludePattern or not re.search(excludePattern, dirName):
+      #print("miconf-traverse: processing directory: '%s'" % dirName)
       odirName = re.sub("^"+rootDir, prefix, dirName, 1)
       for fname in fileList:
          (ofname,n) = re.subn(pattern, replace, fname, 1)
          if n == 1: 
-            command = cmd % (dirName + '/' + fname, odirName + '/' + ofname)
-            print(command)
+            fullInName = os.path.join(dirName, fname)
+            fullOutName = os.path.join(odirName, ofname)
+            command = cmd % (fullInName, fullOutName)
+            print "miconf-traverse: running: '%s' . . . " % command,
+            ret = os.system(command)
+            print "exit code: %d" % ret,
+            imode = stat.S_IMODE(os.stat(fullInName).st_mode)
+            if os.path.exists(fullOutName):
+               omode = stat.S_IMODE(os.stat(fullOutName).st_mode)
+               if omode != imode:
+                  os.chmod(fullOutName,imode)
+                  print ", chmod: %d" % imode,
+            print ""
 
