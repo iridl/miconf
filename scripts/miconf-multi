@@ -8,12 +8,12 @@ lang  = sys.argv[3]
 
 tokens = ('OPEN','CONT','CLOSE','OPENN','CONTN','CLOSEN','newline','CHAR')
 
-t_OPEN    = r'\[\[\[[a-zA-Z_]+:'
+t_OPEN    = r'\{\{\{[a-zA-Z_]+:'
 t_CONT    = r'\|\|\|[a-zA-Z_]+:'
-t_CLOSE   = r'\]\]\]'
-t_OPENN    = r'(?m)^\[\[\[[a-zA-Z_]+:\n'
+t_CLOSE   = r'\}\}\}'
+t_OPENN    = r'(?m)^\{\{\{[a-zA-Z_]+:\n'
 t_CONTN    = r'(?m)^\|\|\|[a-zA-Z_]+:\n'
-t_CLOSEN   = r'(?m)^\]\]\]\n'
+t_CLOSEN   = r'(?m)^\}\}\}\n'
 t_CHAR    = r'.'
 
 def t_newline(t):
