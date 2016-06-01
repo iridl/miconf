@@ -4,17 +4,29 @@ import ply.lex as lex
 
 iname = sys.argv[1]
 oname = sys.argv[2]
-lang  = sys.argv[3]
+langs  = sys.argv[3].split(',')
 
 tokens = ('OPEN','CONT','CLOSE','OPENN','CONTN','CLOSEN','newline','CHAR')
 
-t_OPEN    = r'\{\{\{[a-zA-Z_]+:'
-t_CONT    = r'\|\|\|[a-zA-Z_]+:'
-t_CLOSE   = r'\}\}\}'
-t_OPENN    = r'(?m)^\{\{\{[a-zA-Z_]+:\n'
-t_CONTN    = r'(?m)^\|\|\|[a-zA-Z_]+:\n'
-t_CLOSEN   = r'(?m)^\}\}\}\n'
 t_CHAR    = r'.'
+t_CLOSE   = r'>>>'
+t_CONT    = r':::[a-zA-Z_]+:::'
+t_OPEN    = r'<<<[a-zA-Z_]+:::'
+
+def t_CLOSEN(t):
+    r'(?m)^>>>\n'
+    t.lexer.lineno += 1
+    return t
+
+def t_CONTN(t):
+    r'(?m)^:::[a-zA-Z_]+:::\n'
+    t.lexer.lineno += 1
+    return t
+
+def t_OPENN(t):
+    r'(?m)^<<<[a-zA-Z_]+:::\n'
+    t.lexer.lineno += 1
+    return t
 
 def t_newline(t):
     r'\n'
@@ -25,30 +37,58 @@ def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
+def error(t,s):
+   print("miconf-multi: error: %s (token: %s)" % (s,t))
+   sys.exit(1)
+
 lexer = lex.lex()
 
 fi = open(iname,'r')
 si = fi.read()
 fi.close()
 
-so = ''
-tlang = None;
+sp = 0
+tlang = '';
+stack = [[tlang,{tlang:""}]]
 lexer.input(si)
 while True:
-    tok = lexer.token()
-    if not tok: 
+    t = lexer.token()
+    if not t: 
         break      # No more input
-    if tok.type == 'OPEN' or tok.type == 'CONT':
-       tlang = tok.value[3:len(tok.value)-1]
-    elif tok.type == 'OPENN' or tok.type == 'CONTN':
-       tlang = tok.value[3:len(tok.value)-2]
-    elif tok.type == 'CLOSE' or tok.type == 'CLOSEN':
-       tlang = None
-    elif not tlang or tlang == lang:
-       so = so + tok.value
-    #print(tlang,tok,lexer.lineno)
+    if t.type == 'OPEN' or t.type == 'OPENN':
+        tlang = t.value[3:len(t.value)-(3 if t.type == 'OPEN' else 4)]
+        sp += 1
+        stack.append([tlang,{tlang:""}])
+    elif t.type == 'CONT' or t.type == 'CONTN':
+        if sp == 0:
+           stack[sp][1][tlang] += t.value
+        else:   
+           tlang = t.value[3:len(t.value)-(3 if t.type == 'CONT' else 4)]
+           stack[sp][0] = tlang
+           stack[sp][1][tlang] = ""
+    elif t.type == 'CLOSE' or t.type == 'CLOSEN':
+        if sp == 0:
+           stack[sp][1][tlang] += t.value
+        else:   
+           s = ""
+           for lang in langs:
+              if lang in stack[sp][1]:
+                 s = stack[sp][1][lang]
+                 break
+           sp -= 1
+           stack.pop()
+           tlang = stack[sp][0]
+           stack[sp][1][tlang] += s
+    else:
+       stack[sp][1][tlang] += t.value
+    #print(tlang,t,lexer.lineno,stack,sp)
+
+if sp != 0:
+   error(None,"missing %d '>>>'s" % sp)
 
 fo = open(oname,'w')
-fo.write(so)
+fo.write(stack[0][1][''])
 fo.close()
+
+sys.exit(0)
 
