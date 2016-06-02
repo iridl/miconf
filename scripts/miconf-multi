@@ -6,12 +6,13 @@ iname = sys.argv[1]
 oname = sys.argv[2]
 langs  = sys.argv[3].split(',')
 
-tokens = ('OPEN','CONT','CLOSE','OPENN','CONTN','CLOSEN','newline','CHAR')
+tokens = ('OPEN','CONT','CLOSE','OPENN','CONTN','CLOSEN','OPENE','newline','CHAR')
 
 t_CHAR    = r'.'
+t_OPEN    = r'<<<[a-zA-Z_]+:'
+t_OPENE   = r'<<<'
+t_CONT    = r'\|\|\|[a-zA-Z_]+:'
 t_CLOSE   = r'>>>'
-t_CONT    = r':::[a-zA-Z_]+:::'
-t_OPEN    = r'<<<[a-zA-Z_]+:::'
 
 def t_CLOSEN(t):
     r'(?m)^>>>\n'
@@ -19,12 +20,12 @@ def t_CLOSEN(t):
     return t
 
 def t_CONTN(t):
-    r'(?m)^:::[a-zA-Z_]+:::\n'
+    r'(?m)^\|\|\|[a-zA-Z_]+:\n'
     t.lexer.lineno += 1
     return t
 
 def t_OPENN(t):
-    r'(?m)^<<<[a-zA-Z_]+:::\n'
+    r'(?m)^<<<[a-zA-Z_]+:\n'
     t.lexer.lineno += 1
     return t
 
@@ -49,42 +50,51 @@ fi.close()
 
 sp = 0
 tlang = '';
-stack = [[tlang,{tlang:""}]]
+stack = [[tlang,{tlang:""},0]]
 lexer.input(si)
 while True:
     t = lexer.token()
     if not t: 
         break      # No more input
-    if t.type == 'OPEN' or t.type == 'OPENN':
-        tlang = t.value[3:len(t.value)-(3 if t.type == 'OPEN' else 4)]
+    if t.type == 'OPENE':
+        stack[sp][2] += 1
+        stack[sp][1][tlang] += t.value
+    elif t.type == 'OPEN' or t.type == 'OPENN':
+        tlang = t.value[3:len(t.value)-(1 if t.type == 'OPEN' else 2)]
         sp += 1
-        stack.append([tlang,{tlang:""}])
+        stack.append([tlang,{tlang:""},0])
     elif t.type == 'CONT' or t.type == 'CONTN':
+        if stack[sp][2] != 0:
+           error(t,"expected '>>>'")
         if sp == 0:
            stack[sp][1][tlang] += t.value
-        else:   
-           tlang = t.value[3:len(t.value)-(3 if t.type == 'CONT' else 4)]
+        else:
+           tlang = t.value[3:len(t.value)-(1 if t.type == 'CONT' else 2)]
            stack[sp][0] = tlang
            stack[sp][1][tlang] = ""
     elif t.type == 'CLOSE' or t.type == 'CLOSEN':
-        if sp == 0:
+        if stack[sp][2] != 0:
+           stack[sp][2] -= 1
            stack[sp][1][tlang] += t.value
-        else:   
-           s = ""
-           for lang in langs:
-              if lang in stack[sp][1]:
-                 s = stack[sp][1][lang]
-                 break
-           sp -= 1
-           stack.pop()
-           tlang = stack[sp][0]
-           stack[sp][1][tlang] += s
+        else:
+           if sp == 0:
+              error(t,"unexpected '>>>'")
+           else:
+              s = ""
+              for lang in langs:
+                 if lang in stack[sp][1]:
+                    s = stack[sp][1][lang]
+                    break
+              sp -= 1
+              stack.pop()
+              tlang = stack[sp][0]
+              stack[sp][1][tlang] += s
     else:
        stack[sp][1][tlang] += t.value
     #print(tlang,t,lexer.lineno,stack,sp)
 
-if sp != 0:
-   error(None,"missing %d '>>>'s" % sp)
+if sp != 0 or stack[sp][2] != 0:
+   error('EOF',"missing '>>>'s at the end of the input")
 
 fo = open(oname,'w')
 fo.write(stack[0][1][''])
