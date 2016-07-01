@@ -16,7 +16,7 @@ def fixDirective(d):
    while len(d["lines"])!=0 and re.match("^\s*$",d["lines"][len(d["lines"])-1]):
       d["lines"].pop()
    p1 = re.compile("^.*\.rst$")
-   t = d["type"]
+   t = d["name"]
    files = []
    directives = []
    if t == "toctree":
@@ -29,7 +29,7 @@ def fixDirective(d):
                ds = rstparser(fn)
             else:
                ds = []
-               err( "file '%s' used in directive '%s' in file %s:%d does not exist" % (fn,d["type"],d["filepath"],d["lineno"]) )
+               err( "file '%s' used in directive '%s' in file %s:%d does not exist" % (fn,d["name"],d["filepath"],d["lineno"]) )
             directives += ds
    elif t == "figure" or t == "image":
       files.append(os.path.join(dirpath,d["args"][0].strip()))
@@ -61,13 +61,13 @@ def rstparser(filepath):
          if d:
             ds.append(fixDirective(d))
             d = None
-         d = dict( filepath=filepath, lineno=lineno, type=m1.group(1).lower(), args=re.split("\s+",m1.group(2)), opts=dict() )
+         d = dict( filepath=filepath, lineno=lineno, name=m1.group(1).lower(), args=m1.group(2).split(), opts=dict() )
       elif d and not "lines" in d:
          if m2:
             if not m2.group(2) in d["opts"]:
                d["opts"][m2.group(2)] = m2.group(3)
             else:
-               err( "duplicate option '%s' = '%s' in directive '%s' in file %s:%d" % (m2.group(2),m2.group(3),d["type"],d["filepath"],d["lineno"]) )
+               err( "duplicate option '%s' = '%s' in directive '%s' in file %s:%d" % (m2.group(2),m2.group(3),d["name"],d["filepath"],d["lineno"]) )
          elif m3:
             d["lines"] = []
          else:
@@ -94,12 +94,12 @@ def rstparser(filepath):
 
 def printDirectives(ds,level):
    for d in ds:
-      sys.stdout.write( "%sD %s:%d  %s  (args:%d opts:%d, lines:%d, files:%d, directives:%d)\n" % ("   "*level,d["filepath"],d["lineno"],d["type"],len(d["args"]),len(d["opts"]),len(d["lines"]),len(d["files"]),len(d["directives"])))
+      sys.stdout.write( "%sD %s:%d  %s  (args:%d opts:%d, lines:%d, files:%d, directives:%d)\n" % ("   "*level,d["filepath"],d["lineno"],d["name"],len(d["args"]),len(d["opts"]),len(d["lines"]),len(d["files"]),len(d["directives"])))
       for fpath in d["files"]:
          if os.path.isfile(fpath):
             sys.stdout.write( "%sF %s" % ("   "*level*2,fpath) )
          else:
-            err( "file '%s' used in directive '%s' in %s:%d does not exist" % (fpath,d["type"],d["filepath"],d["lineno"]) )
+            err( "file '%s' used in directive '%s' in %s:%d does not exist" % (fpath,d["name"],d["filepath"],d["lineno"]) )
 
       printDirectives(d["directives"],level+1)
 
@@ -107,6 +107,7 @@ ds = []
 for fn in sys.argv:
    if os.path.isfile(fn):
       ds += rstparser(fn)
+      #print ds
    else:
       err( "file '%s' does not exist (skipped)" % (fn,) )
 printDirectives(ds,0)
