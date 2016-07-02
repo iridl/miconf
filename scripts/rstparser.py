@@ -97,8 +97,9 @@ def printDirectives(ds,level):
       sys.stdout.write( "%sD %s:%d  %s  (args:%d opts:%d, lines:%d, files:%d, directives:%d)\n" % ("   "*level,d["filepath"],d["lineno"],d["name"],len(d["args"]),len(d["opts"]),len(d["lines"]),len(d["files"]),len(d["directives"])))
       for fpath in d["files"]:
          if os.path.isfile(fpath):
-            sys.stdout.write( "%sF %s" % ("   "*level*2,fpath) )
+            sys.stdout.write( "%sF %s\n" % ("   "*(level+1),fpath) )
          else:
+            sys.stdout.write( "%sX %s\n" % ("   "*(level+1),fpath) )
             err( "file '%s' used in directive '%s' in %s:%d does not exist" % (fpath,d["name"],d["filepath"],d["lineno"]) )
 
       printDirectives(d["directives"],level+1)
