@@ -5,7 +5,7 @@ import re
 def err(s):
    sys.stderr.write("error: "+s+"\n")
 
-def fixDirective(d):
+def fixDirective(rootdir,d):
    if "args" not in d:
       d["args"] = []
    if "opts" not in d:
@@ -23,26 +23,33 @@ def fixDirective(d):
       for line in d["lines"]:
          if not re.match("^\s*$",line):
             m1 = p1.match(line)
-            fn = os.path.join(dirpath,line.strip() if m1 else (line.strip()+".rst"))
+            fn = line.strip() if m1 else (line.strip()+".rst")
+            fn = os.path.join(dirpath,fn)
             files.append(fn)
             if os.path.isfile(fn):
-               ds = rstparser(fn)
+               ds = rstparser(rootdir,fn)
             else:
                ds = []
                err( "file '%s' used in directive '%s' in file %s:%d does not exist" % (fn,d["name"],d["filepath"],d["lineno"]) )
             directives += ds
    elif t == "figure" or t == "image":
-      files.append(os.path.join(dirpath,d["args"][0].strip()))
+      fn = os.path.join(dirpath,d["args"][0].strip())
+      if os.path.isabs(fn):
+         fn = os.path.join(rootdir,fn[1:])
+      files.append(fn)
    elif t == "csv-table":
       if "file" in d["opts"]:
          d["opts"]["file"] = d["opts"]["file"].strip()
-         files.append(os.path.join(dirpath,d["opts"]["file"]))
+         fn = os.path.join(dirpath,d["opts"]["file"])
+         if os.path.isabs(fn):
+            fn = os.path.join(rootdir,fn[1:])
+         files.append(fn)
    d["files"] = files
    d["directives"] = directives
    return d
    
 
-def rstparser(filepath):
+def rstparser(rootdir,filepath):
    f = open(filepath)
    p1 = re.compile("^\.\. ([A-Za-z-_+:.]+)::\s+(.*)$")
    p2 = re.compile("^   (:([A-Za-z-_+.]+):\s*(.*))$")
@@ -59,7 +66,7 @@ def rstparser(filepath):
       m4 = p4.match(line)
       if m1:
          if d:
-            ds.append(fixDirective(d))
+            ds.append(fixDirective(rootdir,d))
             d = None
          d = dict( filepath=filepath, lineno=lineno, name=m1.group(1).lower(), args=m1.group(2).split(), opts=dict() )
       elif d and not "lines" in d:
@@ -72,7 +79,7 @@ def rstparser(filepath):
             d["lines"] = []
          else:
             d["lines"] = []
-            ds.append(fixDirective(d))
+            ds.append(fixDirective(rootdir,d))
             d = None
       elif d and "lines" in d:
          if m2: 
@@ -80,14 +87,14 @@ def rstparser(filepath):
          elif m3 or m4:
             d["lines"].append(m4.group(1) if m4 else "")
          else:
-            ds.append(fixDirective(d))
+            ds.append(fixDirective(rootdir,d))
             d = None
       else:
          if d:
             ds.append(d)
             d = None
    if d:
-      ds.append(fixDirective(d))
+      ds.append(fixDirective(rootdir,d))
       d = None
    f.close()
    return ds
@@ -107,8 +114,9 @@ def printDirectives(ds,level):
 ds = []
 for fn in sys.argv:
    if os.path.isfile(fn):
-      ds += rstparser(fn)
-      #print ds
+      rootdir = os.path.dirname(fn)
+      rootdir = '.' if rootdir == '' else rootdir
+      ds += rstparser(rootdir,fn)
    else:
       err( "file '%s' does not exist (skipped)" % (fn,) )
 printDirectives(ds,0)
