@@ -25,5 +25,4 @@
 * Build and install as follows:
 
         make
-        sudo PREFIX=/usr/local install
-
+        sudo make PREFIX=/usr/local install
