@@ -1,3 +1,4 @@
+import glob
 import sys
 import os
 import re
@@ -25,6 +26,7 @@ def fixDirective(rootdir,d):
             m1 = p1.match(line)
             fn = line.strip() if m1 else (line.strip()+".rst")
             fn = os.path.join(dirpath,fn)
+            fn = os.path.normpath(fn)
             files.append(fn)
             if os.path.isfile(fn):
                ds = rstparser(rootdir,fn)
@@ -36,6 +38,7 @@ def fixDirective(rootdir,d):
       fn = os.path.join(dirpath,d["args"][0].strip())
       if os.path.isabs(fn):
          fn = os.path.join(rootdir,fn[1:])
+      fn = os.path.normpath(fn)
       files.append(fn)
    elif t == "csv-table":
       if "file" in d["opts"]:
@@ -43,6 +46,7 @@ def fixDirective(rootdir,d):
          fn = os.path.join(dirpath,d["opts"]["file"])
          if os.path.isabs(fn):
             fn = os.path.join(rootdir,fn[1:])
+         fn = os.path.normpath(fn)
          files.append(fn)
    d["files"] = files
    d["directives"] = directives
@@ -101,15 +105,29 @@ def rstparser(rootdir,filepath):
 
 def printDirectives(ds,level):
    for d in ds:
-      sys.stdout.write( "%sD %s:%d  %s  (args:%d opts:%d, lines:%d, files:%d, directives:%d)\n" % ("   "*level,d["filepath"],d["lineno"],d["name"],len(d["args"]),len(d["opts"]),len(d["lines"]),len(d["files"]),len(d["directives"])))
+      sys.stdout.write( "%sDD %s:%d  %s  (args:%d opts:%d, lines:%d, files:%d, directives:%d)\n" % ("   "*level,d["filepath"],d["lineno"],d["name"],len(d["args"]),len(d["opts"]),len(d["lines"]),len(d["files"]),len(d["directives"])))
       for fpath in d["files"]:
-         if os.path.isfile(fpath):
-            sys.stdout.write( "%sF %s\n" % ("   "*(level+1),fpath) )
+         if fpath[-1] == '*':
+            for fp in glob.glob(fpath):
+               sys.stdout.write( "%sFS %s\n" % ("   "*(level+1),fp) )
          else:
-            sys.stdout.write( "%sX %s\n" % ("   "*(level+1),fpath) )
-            err( "file '%s' used in directive '%s' in %s:%d does not exist" % (fpath,d["name"],d["filepath"],d["lineno"]) )
+            if os.path.isfile(fpath):
+               sys.stdout.write( "%sFF %s\n" % ("   "*(level+1),fpath) )
+            else:
+               sys.stdout.write( "%sFX %s\n" % ("   "*(level+1),fpath) )
+               err( "file '%s' used in directive '%s' in %s:%d does not exist" % (fpath,d["name"],d["filepath"],d["lineno"]) )
 
       printDirectives(d["directives"],level+1)
+
+def collectFiles(ds):
+   rs = set([])
+   for d in ds:
+      for fpath in d["files"]:
+         rs.add(fpath)
+         if not os.path.isfile(fpath):
+            err( "file '%s' used in directive '%s' in %s:%d does not exist" % (fpath,d["name"],d["filepath"],d["lineno"]) )
+      rs = rs.union(collectFiles(d["directives"]))
+   return rs
 
 ds = []
 for fn in sys.argv:
@@ -119,5 +137,7 @@ for fn in sys.argv:
       ds += rstparser(rootdir,fn)
    else:
       err( "file '%s' does not exist (skipped)" % (fn,) )
-printDirectives(ds,0)
+#printDirectives(ds,0)
+for fpath in sorted(list(collectFiles(ds)) + [fn]):
+   sys.stdout.write( "%s\n" % (fpath,))
 
