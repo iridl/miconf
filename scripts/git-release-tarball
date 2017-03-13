@@ -28,7 +28,9 @@ echo "'$label' release to '$prefix' started: `date`"
 
 if [ ! -f "$lockfile" ]; then
    touch "$lockfile"
-else 
+elif test "`find \"$lockfile\" -mmin +120`"; then
+   touch "$lockfile"
+else
    echo "If you would like me to proceed, please make sure there are no running '$progname \"$prefix\" ...' processes, and then remove '$lockfile'."
    exit 1;
 fi
