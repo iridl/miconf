@@ -1,11 +1,11 @@
-miconf: miconf.c version.h
-	gcc -O2 -I../lua/src -L../lua/src -o $@ $< -l lua $(SYSLIBS)
+piconf: piconf.c version.h
+	gcc -O2 -o $@ $< -lpython27 $(SYSLIBS)
 
 version.h: ../.git
 	../scripts/git-generate-version-info miconf c >$@
 
-miconf.html: miconf.md
-	multimarkdown miconf.md >miconf.html
+piconf.html: piconf.md
+	multimarkdown piconf.md >piconf.html
 
 clean:
-	rm -f miconf version.h
+	rm -f piconf version.h

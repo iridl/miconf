@@ -81,7 +81,6 @@ These functions get called when `piconf` is run in recoursive mode using `-r` op
 	      return path + (('/'..fname) if fname else ''), path + '/' + ofname, piconf_markup_hook()
 	   else
 	      return nil,nil,nil
-	   end
 
 ##Example
 
@@ -107,7 +106,7 @@ These functions get called when `piconf` is run in recoursive mode using `-r` op
 	text3
         === pass
 	text4
-	=== for i = 1, a do
+	=== for i in range(1,a+1):
         ===    pass
 	text5,<<<square(i)>>>,text6,<<<d['z']>>>,text7
 	=== pass

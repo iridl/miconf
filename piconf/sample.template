@@ -1,11 +1,13 @@
 text0
 text1,<<<c>>>,text2
-=== if b > 100 then
+=== if b > 100:
+===    pass
 text3
-=== end
+=== pass
 text4
-=== for i = 1, a do
-text5,<<<square(i)>>>,text6,<<<d[1]>>>,text7
-=== end
+=== for i in range(1,a+1):
+===    pass
+text5,<<<square(i)>>>,text6,<<<d['z']>>>,text7
+=== pass
 text8
 
