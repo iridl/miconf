@@ -1,19 +1,12 @@
-<h1 id="miconf">miconf</h1>
-
-<h2 id="name">Name</h2>
-
-<p><code>miconf</code> - lightweight configuration utility </p>
-
-<h2 id="synopsis">Synopsis</h2>
-
-<pre><code>miconf -h
+<p>#miconf
+##Name
+<code>miconf</code> - lightweight configuration utility<br />
+##Synopsis
+miconf -h
 miconf [options] -r directory
 miconf [options] template_file output_file
-</code></pre>
-
-<h2 id="description">Description</h2>
-
-<p><code>miconf</code> is a lightweight configuration utility based on simple template substitution technique and <a href="http://www.lua.org/">Lua</a> expressions. It executes a configuration file (a Lua program), and then uses the results of the execution (its global state) in template substitution. It reads <code>template_file</code> and substitutes <code>&lt;&lt;&lt;</code><em>lua expression</em><code>&gt;&gt;&gt;</code> placeholders with evaluated <em>lua expression</em>. It also executes lines that start with <code>===</code>. </p>
+##Description
+<code>miconf</code> is a lightweight configuration utility based on simple template substitution technique and <a href="http://www.lua.org/">Lua</a> expressions. It executes a configuration file (a Lua program), and then uses the results of the execution (its global state) in template substitution. It reads <code>template_file</code> and substitutes <code>&lt;&lt;&lt;</code><em>lua expression</em><code>&gt;&gt;&gt;</code> placeholders with evaluated <em>lua expression</em>. It also executes lines that start with <code>===</code>.</p>
 
 <p>For example:</p>
 
@@ -37,7 +30,7 @@ miconf [options] template_file output_file
 
 <p><code>miconf</code> executable is a self sufficient executable that requires only a C runtime.</p>
 
-<h2 id="options">Options</h2>
+<p>##Options</p>
 
 <table>
 <colgroup>
@@ -49,59 +42,60 @@ miconf [options] template_file output_file
 
 <thead>
 <tr>
-	<th style="text-align:left;">Option</th>
-	<th style="text-align:left;">Default value</th>
-	<th style="text-align:left;">Description</th>
-	<th style="text-align:left;">Example</th>
+	<th style="text-align:left;"> Option 	</th>
+	<th style="text-align:left;"> Default value 	</th>
+	<th style="text-align:left;"> Description 	</th>
+	<th style="text-align:left;"> Example 	</th>
 </tr>
 </thead>
 
 <tbody>
 <tr>
-	<td style="text-align:left;"><code>-c file</code></td>
-	<td style="text-align:left;"><code>'config.lua'</code></td>
-	<td style="text-align:left;">config file</td>
-	<td style="text-align:left;"><code>-c system.config</code></td>
+	<td style="text-align:left;"> <code>-c file</code> 	</td>
+	<td style="text-align:left;"> <code>'config.lua'</code> 	</td>
+	<td style="text-align:left;"> config file 	</td>
+	<td style="text-align:left;"> <code>-c system.config</code> 	</td>
 </tr>
 <tr>
-	<td style="text-align:left;"><code>-e block</code></td>
-	<td style="text-align:left;"><code>''</code></td>
-	<td style="text-align:left;">config block</td>
-	<td style="text-align:left;"><code>-e 'host=&quot;foo&quot;; ip=&quot;127.0.0.1&quot;'</code></td>
+	<td style="text-align:left;"> <code>-e block</code> 	</td>
+	<td style="text-align:left;"> <code>''</code> 	</td>
+	<td style="text-align:left;"> config block 	</td>
+	<td style="text-align:left;"> <code>-e 'host=&quot;foo&quot;; ip=&quot;127.0.0.1&quot;'</code>	</td>
 </tr>
 <tr>
-	<td style="text-align:left;"><code>-p pattern</code></td>
-	<td style="text-align:left;"><code>'[.]template$'</code></td>
-	<td style="text-align:left;">template file name pattern (see <code>miconf_fname_hook</code>)</td>
-	<td style="text-align:left;"><code>-p '[.]miconf([.]?)'</code></td>
+	<td style="text-align:left;"> <code>-p pattern</code> 	</td>
+	<td style="text-align:left;"> <code>'[.]template$'</code> 	</td>
+	<td style="text-align:left;"> template file name pattern (see <code>miconf_fname_hook</code>) 	</td>
+	<td style="text-align:left;"> <code>-p '[.]miconf([.]?)'</code> 	</td>
 </tr>
 <tr>
-	<td style="text-align:left;"><code>-s replace</code></td>
-	<td style="text-align:left;"><code>''</code></td>
-	<td style="text-align:left;">file name pattern replacement (see <code>miconf_fname_hook</code>)</td>
-	<td style="text-align:left;"><code>-s '%1'</code></td>
+	<td style="text-align:left;"> <code>-s replace</code> 	</td>
+	<td style="text-align:left;"> <code>''</code> 	</td>
+	<td style="text-align:left;"> file name pattern replacement (see <code>miconf_fname_hook</code>) 	</td>
+	<td style="text-align:left;"> <code>-s '%1'</code> 	</td>
 </tr>
 <tr>
-	<td style="text-align:left;"><code>-t</code></td>
-	<td style="text-align:left;"></td>
-	<td style="text-align:left;">preserve temp files</td>
-	<td style="text-align:left;"></td>
+	<td style="text-align:left;"> <code>-t</code> 	</td>
+	<td style="text-align:left;"> 	</td>
+	<td style="text-align:left;"> preserve temp files 	</td>
+	<td style="text-align:left;"> 	</td>
 </tr>
 <tr>
-	<td style="text-align:left;"><code>-m</code></td>
-	<td style="text-align:left;"></td>
-	<td style="text-align:left;">disable chmod</td>
-	<td style="text-align:left;"></td>
+	<td style="text-align:left;"> <code>-m</code> 	</td>
+	<td style="text-align:left;"> 	</td>
+	<td style="text-align:left;"> disable chmod 	</td>
+	<td style="text-align:left;"> 	</td>
 </tr>
 <tr>
-	<td style="text-align:left;"><code>-v</code></td>
-	<td style="text-align:left;"></td>
-	<td style="text-align:left;">verbose</td>
-	<td style="text-align:left;"></td>
+	<td style="text-align:left;"> <code>-v</code> 	</td>
+	<td style="text-align:left;"> 	</td>
+	<td style="text-align:left;"> verbose 	</td>
+	<td style="text-align:left;"> 	</td>
 </tr>
 </tbody>
 </table>
-<h2 id="defaulthooks">Default hooks</h2>
+
+<p>##Default hooks</p>
 
 <p>The following &#8220;hooks&#8221; are used if you do not redefine them in your configuration files.
 These functions get called when <code>miconf</code> is run in recoursive mode using <code>-r</code> option. <code>miconf_dname_hook</code> is invoked for each subdirectory, and <code>miconf_fname_hook</code> is called for each regular file. <code>miconf_dname_hook</code> has to return a full path to the subdirectory to traverse, or <code>nil</code> to ignore the whole subdirectory. <code>miconf_fname_hook</code> has to return input file path, output file path and markup syntax description table (see <code>miconf_markup_hook</code> below), or <code>(nil,nil,nil)</code> if you want to ignore the file. These functions allow for customization of miconf&#8217;s behavior, i.e. what parts of your tree and what files to process, and how to come up with output file names. For example, you may keep your templates at a separate directory and output files into your output tree, etc. You may adjust miconf&#8217;s markup syntax with <code>miconf_markup_hook</code>.</p>
@@ -124,7 +118,7 @@ function miconf_fname_hook(level,pattern,path,file,type,replace)
 end
 </code></pre>
 
-<h2 id="example">Example</h2>
+<p>##Example</p>
 
 <p><strong><code>$ cat sample.config</code></strong></p>
 

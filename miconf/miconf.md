@@ -1,6 +1,6 @@
 #miconf
 ##Name
-`miconf` - lightweight configuration utility  
+`miconf` - lightweight configuration utility with Lua 
 ##Synopsis
 	miconf -h
 	miconf [options] -r directory
