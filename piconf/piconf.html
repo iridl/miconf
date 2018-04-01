@@ -1,0 +1,173 @@
+<h1 id="miconf">miconf</h1>
+
+<h2 id="name">Name</h2>
+
+<p><code>miconf</code> - lightweight configuration utility </p>
+
+<h2 id="synopsis">Synopsis</h2>
+
+<pre><code>miconf -h
+miconf [options] -r directory
+miconf [options] template_file output_file
+</code></pre>
+
+<h2 id="description">Description</h2>
+
+<p><code>miconf</code> is a lightweight configuration utility based on simple template substitution technique and <a href="http://www.lua.org/">Lua</a> expressions. It executes a configuration file (a Lua program), and then uses the results of the execution (its global state) in template substitution. It reads <code>template_file</code> and substitutes <code>&lt;&lt;&lt;</code><em>lua expression</em><code>&gt;&gt;&gt;</code> placeholders with evaluated <em>lua expression</em>. It also executes lines that start with <code>===</code>. </p>
+
+<p>For example:</p>
+
+<pre><code>. . .
+=== for x = 1, 3 do
+&lt;&lt;&lt;x&gt;&gt;&gt; ^ 3 = &lt;&lt;&lt; x^3 &gt;&gt;&gt;
+=== end
+. . .
+</code></pre>
+
+<p>will result in the following output:</p>
+
+<pre><code>. . .
+1 ^ 3 = 1
+2 ^ 3 = 8
+3 ^ 3 = 27
+. . .
+</code></pre>
+
+<p>When <code>miconf</code> is run in recoursive <code>-r</code> mode, it traverses <code>directory</code> recoursively and processes files based on the pattern (<code>-p</code> option) and the output of callback functions.</p>
+
+<p><code>miconf</code> executable is a self sufficient executable that requires only a C runtime.</p>
+
+<h2 id="options">Options</h2>
+
+<table>
+<colgroup>
+<col style="text-align:left;"/>
+<col style="text-align:left;"/>
+<col style="text-align:left;"/>
+<col style="text-align:left;"/>
+</colgroup>
+
+<thead>
+<tr>
+	<th style="text-align:left;">Option</th>
+	<th style="text-align:left;">Default value</th>
+	<th style="text-align:left;">Description</th>
+	<th style="text-align:left;">Example</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+	<td style="text-align:left;"><code>-c file</code></td>
+	<td style="text-align:left;"><code>'config.lua'</code></td>
+	<td style="text-align:left;">config file</td>
+	<td style="text-align:left;"><code>-c system.config</code></td>
+</tr>
+<tr>
+	<td style="text-align:left;"><code>-e block</code></td>
+	<td style="text-align:left;"><code>''</code></td>
+	<td style="text-align:left;">config block</td>
+	<td style="text-align:left;"><code>-e 'host=&quot;foo&quot;; ip=&quot;127.0.0.1&quot;'</code></td>
+</tr>
+<tr>
+	<td style="text-align:left;"><code>-p pattern</code></td>
+	<td style="text-align:left;"><code>'[.]template$'</code></td>
+	<td style="text-align:left;">template file name pattern (see <code>miconf_fname_hook</code>)</td>
+	<td style="text-align:left;"><code>-p '[.]miconf([.]?)'</code></td>
+</tr>
+<tr>
+	<td style="text-align:left;"><code>-s replace</code></td>
+	<td style="text-align:left;"><code>''</code></td>
+	<td style="text-align:left;">file name pattern replacement (see <code>miconf_fname_hook</code>)</td>
+	<td style="text-align:left;"><code>-s '%1'</code></td>
+</tr>
+<tr>
+	<td style="text-align:left;"><code>-t</code></td>
+	<td style="text-align:left;"></td>
+	<td style="text-align:left;">preserve temp files</td>
+	<td style="text-align:left;"></td>
+</tr>
+<tr>
+	<td style="text-align:left;"><code>-m</code></td>
+	<td style="text-align:left;"></td>
+	<td style="text-align:left;">disable chmod</td>
+	<td style="text-align:left;"></td>
+</tr>
+<tr>
+	<td style="text-align:left;"><code>-v</code></td>
+	<td style="text-align:left;"></td>
+	<td style="text-align:left;">verbose</td>
+	<td style="text-align:left;"></td>
+</tr>
+</tbody>
+</table>
+<h2 id="defaulthooks">Default hooks</h2>
+
+<p>The following &#8220;hooks&#8221; are used if you do not redefine them in your configuration files.
+These functions get called when <code>miconf</code> is run in recoursive mode using <code>-r</code> option. <code>miconf_dname_hook</code> is invoked for each subdirectory, and <code>miconf_fname_hook</code> is called for each regular file. <code>miconf_dname_hook</code> has to return a full path to the subdirectory to traverse, or <code>nil</code> to ignore the whole subdirectory. <code>miconf_fname_hook</code> has to return input file path, output file path and markup syntax description table (see <code>miconf_markup_hook</code> below), or <code>(nil,nil,nil)</code> if you want to ignore the file. These functions allow for customization of miconf&#8217;s behavior, i.e. what parts of your tree and what files to process, and how to come up with output file names. For example, you may keep your templates at a separate directory and output files into your output tree, etc. You may adjust miconf&#8217;s markup syntax with <code>miconf_markup_hook</code>.</p>
+
+<pre><code>function miconf_dname_hook(level,path,file)
+   return path..(file and (&quot;/&quot;..file) or &quot;&quot;)
+end
+
+function miconf_markup_hook()
+   return {3,string.byte(&quot;=&quot;),string.byte(&quot;&lt;&quot;),string.byte(&quot;&gt;&quot;)}
+end
+
+function miconf_fname_hook(level,pattern,path,file,type,replace)
+   ofile,cnt = file:gsub(pattern,replace,1)
+   if ofile and cnt==1 and ofile:len()&gt;0 then
+      return path..(file and (&quot;/&quot;..file) or &quot;&quot;), path..&quot;/&quot;..ofile, miconf_markup_hook()
+   else
+      return nil,nil,nil
+   end
+end
+</code></pre>
+
+<h2 id="example">Example</h2>
+
+<p><strong><code>$ cat sample.config</code></strong></p>
+
+<pre><code>a = a or 5
+b = 200
+c = &quot;Hello, world!&quot;
+if a &lt; 100 then
+   d = {x=a, &quot;boo&quot;}
+else
+   d = {x=10, &quot;foo&quot;}
+end
+
+function square(x)
+   return x*x
+end
+</code></pre>
+
+<p><strong><code>$ cat sample.template</code></strong></p>
+
+<pre><code>text0
+text1,&lt;&lt;&lt;c&gt;&gt;&gt;,text2
+=== if b &gt; 100 then
+text3
+=== end
+text4
+=== for i = 1, a do
+text5,&lt;&lt;&lt;square(i)&gt;&gt;&gt;,text6,&lt;&lt;&lt;d[1]&gt;&gt;&gt;,text7
+=== end
+text8
+</code></pre>
+
+<p><strong><code>$ miconf -v -e 'a=5' -c sample.config sample.template sample</code></strong></p>
+
+<p><strong><code>$ cat sample</code></strong></p>
+
+<pre><code>text0
+text1,Hello, world!,text2
+text3
+text4
+text5,1,text6,boo,text7
+text5,4,text6,boo,text7
+text5,9,text6,boo,text7
+text5,16,text6,boo,text7
+text5,25,text6,boo,text7
+text8
+</code></pre>
