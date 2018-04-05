@@ -221,7 +221,7 @@ void convert(FILE* fi, FILE* fo, int n, int eq, int la, int ra) {
    }
 }
 
-void process_file(const char* iname, const char* oname, int tflag, int mflag, int vflag, const char* pattern, int n, int cs, int cle, int cre) {
+void process_file(PyObject *P, const char* iname, const char* oname, int tflag, int mflag, int vflag, const char* pattern, int n, int cs, int cle, int cre) {
 
    if (vflag) {
       fprintf(stderr, "processing file '%s' -> '%s', (%d,'%c','%c','%c')\n", iname, oname, n,cs,cle,cre);
@@ -275,7 +275,7 @@ void process_file(const char* iname, const char* oname, int tflag, int mflag, in
    ft = fopen(tname,"r");
    if (ft) {
       if (PyRun_SimpleFile(ft, tname) != 0) {
-         //fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),tname);
+         fprintf(stderr,"Could not execute script (file='%s')\n",tname);
          exit(1);
       }
       fclose(ft);
@@ -310,8 +310,9 @@ void process_file(const char* iname, const char* oname, int tflag, int mflag, in
    }
 }
 
-void process_dir(const char* dname, int tflag, int mflag, int vflag, const char* pattern, const char* replace, int level) {
-/*
+void process_dir(PyObject *P, const char* dname, int tflag, int mflag, int vflag, const char* pattern, const char* replace, int level) {
+   char buf[10000];
+
    if (vflag) {
       fprintf(stderr, "processing dir(%d) '%s'\n", level, dname);
    }
@@ -324,66 +325,58 @@ void process_dir(const char* dname, int tflag, int mflag, int vflag, const char*
    struct dirent* dp;
    while ((dp=readdir(dirp)) != NULL) {
       switch(dp->d_type) {
-      case DT_REG:
-         lua_getglobal(L,"piconf_fname_hook");
-         lua_pushinteger(L,level);
-         lua_pushstring(L,pattern);
-         lua_pushstring(L,dname);
-         lua_pushstring(L,dp->d_name);
-         lua_pushinteger(L,dp->d_type);
-         lua_pushstring(L,replace);
-         if (lua_pcall(L, 6, 3, 0) != 0) {
-            fprintf(stderr,"error running lua function 'piconf_fname_hook': %s\n", lua_tostring(L,-1));
-            exit(1);
+      case DT_REG: {
+
+            sprintf(buf,"(__piconf_iname, __piconf_oname, __piconf_markup) = piconf_fname_hook(%d,\"%s\",\"%s\",\"%s\",%d,\"%s\");"
+               " (__piconf_n,__piconf_cs,__piconf_cle,__piconf_cre) = __piconf_markup;\n",
+               level,pattern,dname,dp->d_name,dp->d_type,replace);
+            if (PyRun_SimpleString(buf)!=0) {
+               fprintf(stderr,"Cannot execute script (block='%s')\n",buf);
+               exit(1);
+            }
+            PyObject *var_iname = PyObject_GetAttrString(P, "__piconf_iname");
+            PyObject *var_oname = PyObject_GetAttrString(P, "__piconf_oname");
+            PyObject *var_n = PyObject_GetAttrString(P, "__piconf_n");
+            PyObject *var_cs = PyObject_GetAttrString(P, "__piconf_cs");
+            PyObject *var_cle = PyObject_GetAttrString(P, "__piconf_cle");
+            PyObject *var_cre = PyObject_GetAttrString(P, "__piconf_cre");
+
+            const char* iname = PyString_AsString(var_iname);
+            const char* oname = PyString_AsString(var_oname);
+
+            int n = (var_n==NULL ? 3 : PyInt_AsLong(var_n));
+            int cs = (var_cs==NULL ? '=' : PyInt_AsLong(var_cs));
+            int cle = (var_cle==NULL ? '<' : PyInt_AsLong(var_cle));
+            int cre = (var_cre==NULL ? '>' : PyInt_AsLong(var_cre));
+
+            process_file(P,iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
+
+            Py_XDECREF(var_cre);
+            Py_XDECREF(var_cle);
+            Py_XDECREF(var_cs);
+            Py_XDECREF(var_n);
+            Py_XDECREF(var_oname);
+            Py_XDECREF(var_iname);
          }
-         if (lua_istable(L,-1) && lua_isstring(L,-2) && lua_isstring(L,-3)) {
-            const char* iname = lua_tostring(L,-3);
-            const char* oname = lua_tostring(L,-2);
-
-            lua_pushinteger(L,1);
-            lua_gettable(L,-2);
-            int n = lua_tointeger(L,-1);
-            lua_pop(L,1);
-
-            lua_pushinteger(L,2);
-            lua_gettable(L,-2);
-            int cs = lua_tointeger(L,-1);
-            lua_pop(L,1);
-
-            lua_pushinteger(L,3);
-            lua_gettable(L,-2);
-            int cle = lua_tointeger(L,-1);
-            lua_pop(L,1);
-
-            lua_pushinteger(L,4);
-            lua_gettable(L,-2);
-            int cre = lua_tointeger(L,-1);
-            lua_pop(L,1);
-
-            process_file(iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
-         }
-         lua_pop(L,3);  
          break;
-      case DT_DIR:
-         if (strcmp(dp->d_name,".")==0 || strcmp(dp->d_name,"..")==0) 
-            break;
-         lua_getglobal(L,"piconf_dname_hook");
-         lua_pushinteger(L,level);
-         lua_pushstring(L,dname);
-         lua_pushstring(L,dp->d_name);
-         if (lua_pcall(L, 3, 1, 0) != 0) {
-            fprintf(stderr,"error running lua function 'piconf_dname_hook': %s\n", lua_tostring(L,-1));
-            exit(1);
+      case DT_DIR: {
+            if (strcmp(dp->d_name,".")==0 || strcmp(dp->d_name,"..")==0) 
+               break;
+
+            sprintf(buf,"__piconf_dname = piconf_dname_hook(%d,\"%s\",\"%s\")",level,dname,dp->d_name);
+            if (PyRun_SimpleString(buf)!=0) {
+               fprintf(stderr,"Cannot execute script (block='%s')\n",buf);
+               exit(1);
+            }
+            PyObject *var_dname = PyObject_GetAttrString(P, "__piconf_dname");
+            const char* dname_out = PyString_AsString(var_dname);
+            process_dir(P,dname_out,tflag,mflag,vflag,pattern,replace,level+1);
+            Py_XDECREF(var_dname);
          }
-         if (lua_isstring(L,-1)) {
-            process_dir(lua_tostring(L,-1),tflag,mflag,vflag,pattern,replace,level+1);
-         }
-         lua_pop(L,1);
          break;
       }
    }
    closedir(dirp);
-*/
 }
 
 void version() {
@@ -412,6 +405,7 @@ void usage() {
 
 
 int main(int argc, char* argv[]) {
+   char buf[10000];
    int ch;
    int rflag = 0;
    int tflag = 0;
@@ -422,35 +416,26 @@ int main(int argc, char* argv[]) {
 
    Py_SetProgramName(argv[0]);
    Py_Initialize();
+   PyObject *P = PyImport_AddModule("__main__");
 
-/*
    const char* hooks = 
-      "function piconf_dname_hook(level,path,file)\n"
-      "   if file == \".git\" then\n"
-      "      return nil\n"
-      "   else\n"
-      "      return path..(file and (\"/\"..file) or \"\")\n"
-      "   end\n"
-      "end\n"
-      "function piconf_markup_hook()\n"
-      "   return {3,string.byte(\"=\"),string.byte(\"<\"),string.byte(\">\")}\n"
-      "end\n"
-      "function piconf_fname_hook(level,pattern,path,file,type,replace)\n"
-      "   ofile,cnt = file:gsub(pattern,replace,1)\n"
-      "   if ofile and cnt==1 and ofile:len()>0 then\n"
-      "      return path..(file and (\"/\"..file) or \"\"), path..\"/\"..ofile, piconf_markup_hook()\n"
-      "   else\n"
+
+      "def piconf_dname_hook(level,path,fname=None):\n"
+      "   return path + (('/'+fname) if fname else '')\n"
+      "def piconf_markup_hook():\n"
+      "   return [3,ord('='),ord('<'),ord('>')]\n"
+      "def piconf_fname_hook(level,pattern,path,fname,ftype,replace):\n"
+      "   ofname,cnt = re.subn(pattern,replace,fname,count=1)\n"
+      "   if ofname and cnt==1 and len(ofname)>0:\n"
+      "      return path + (('/'+fname) if fname else ''), path + '/' + ofname, piconf_markup_hook()\n"
+      "   else:\n"
       "      return nil,nil,nil\n"
-      "   end\n"
-      "end\n"
    ;
 
-   if (luaL_dostring(L,hooks)!=0) {
-      fprintf(stderr,"%s (string='%s')\n",lua_tostring(L,-1),hooks);
-      lua_pop(L,1);
+   if (PyRun_SimpleString(hooks)!=0) {
+      fprintf(stderr,"Cannot execute script (block='%s')\n",hooks);
       exit(1);
    }
-*/
 
    while ((ch = getopt(argc, argv, "hVrtmvp:s:e:c:")) != -1) {
       FILE *f;
@@ -461,7 +446,7 @@ int main(int argc, char* argv[]) {
       case 'h':
          usage();
          fprintf(stderr,"Default config:\n\n");
-         //fprintf(stderr,"%s\n",hooks);
+         fprintf(stderr,"%s\n",hooks);
          fprintf(stderr,"----\n\n");
          exit(0);
       case 'r': rflag = 1; break;
@@ -474,7 +459,7 @@ int main(int argc, char* argv[]) {
          f = fopen(optarg,"r");
          if (f) {
             if (PyRun_SimpleFile(f, optarg) != 0) {
-               //fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),optarg);
+               fprintf(stderr,"Cannot execute script (file='%s')\n",optarg);
                exit(1);
             }
             fclose(f);
@@ -482,7 +467,7 @@ int main(int argc, char* argv[]) {
          break;
       case 'e':
          if (PyRun_SimpleString(optarg)!=0) {
-            //fprintf(stderr,"%s (block='%s')\n",lua_tostring(L,-1),optarg);
+            fprintf(stderr,"Cannot execute script (block='%s')\n",optarg);
             exit(1);
          }
          break;
@@ -498,71 +483,47 @@ int main(int argc, char* argv[]) {
       const char* iname = argc>0 ? argv[0] : "-";
       const char* oname = argc>1 ? argv[1] : "-";
 
-      int n = 3;
-      int cs = '=';
-      int cle = '<';
-      int cre = '>';
-/*
-      lua_getglobal(L,"piconf_markup_hook");
-      if (lua_pcall(L, 0, 1, 0) != 0) {
-         fprintf(stderr,"error running lua function 'piconf_markup_hook': %s\n", lua_tostring(L,-1));
+      const char *markup_hook_block = "(__piconf_n,__piconf_cs,__piconf_cle,__piconf_cre) = piconf_markup_hook()";
+      if (PyRun_SimpleString(markup_hook_block)!=0) {
+         fprintf(stderr,"Cannot execute script (block='%s')\n",markup_hook_block);
          exit(1);
       }
 
-      if (!lua_istable(L,-1)) {
-         fprintf(stderr,"'piconf_markup_hook' must return a table\n");
-         exit(1);
-      }
+      PyObject *var_n = PyObject_GetAttrString(P, "__piconf_n");
+      PyObject *var_cs = PyObject_GetAttrString(P, "__piconf_cs");
+      PyObject *var_cle = PyObject_GetAttrString(P, "__piconf_cle");
+      PyObject *var_cre = PyObject_GetAttrString(P, "__piconf_cre");
 
+      int n = (var_n==NULL ? 3 : PyInt_AsLong(var_n));
+      int cs = (var_cs==NULL ? '=' : PyInt_AsLong(var_cs));
+      int cle = (var_cle==NULL ? '<' : PyInt_AsLong(var_cle));
+      int cre = (var_cre==NULL ? '>' : PyInt_AsLong(var_cre));
 
-      lua_pushinteger(L,1);
-      lua_gettable(L,-2);
-      int n = lua_tointeger(L,-1);
-      lua_pop(L,1);
+      Py_XDECREF(var_cre);
+      Py_XDECREF(var_cle);
+      Py_XDECREF(var_cs);
+      Py_XDECREF(var_n);
 
-      lua_pushinteger(L,2);
-      lua_gettable(L,-2);
-      int cs = lua_tointeger(L,-1);
-      lua_pop(L,1);
+      process_file(P,iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
 
-      lua_pushinteger(L,3);
-      lua_gettable(L,-2);
-      int cle = lua_tointeger(L,-1);
-      lua_pop(L,1);
-
-      lua_pushinteger(L,4);
-      lua_gettable(L,-2);
-      int cre = lua_tointeger(L,-1);
-      lua_pop(L,1);
-*/
-
-      process_file(iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
-
-/*
-      lua_pop(L,1);
-*/
    } else {
-/*
       const char* dname = argc>0 ? argv[0] : ".";
-      lua_getglobal(L,"piconf_dname_hook");
-      lua_pushinteger(L,0);
-      lua_pushstring(L,dname);
-      lua_pushnil(L);
-      if (lua_pcall(L, 3, 1, 0) != 0) {
-         fprintf(stderr,"error running lua function 'piconf_dname_hook': %s\n", lua_tostring(L,-1));
+
+      sprintf(buf,"__piconf_dname = piconf_dname_hook(0,\"%s\")",dname);
+      if (PyRun_SimpleString(buf)!=0) {
+         fprintf(stderr,"Cannot execute script (block='%s')\n",buf);
          exit(1);
       }
-      if (lua_isstring(L,-1)) {
-         process_dir(lua_tostring(L,-1),tflag,mflag,vflag,pattern,replace,1);
+      PyObject *var_dname = PyObject_GetAttrString(P, "__piconf_dname");
+      const char* dname_out = PyString_AsString(var_dname);
+      if (dname_out != NULL) {
+            strcpy(buf,dname_out);
+            process_dir(P,buf,tflag,mflag,vflag,pattern,replace,1);
       }
-      lua_pop(L,1);
-*/
+      Py_XDECREF(var_dname);
    }
 
-/*
-   lua_close(L);
-*/
-
+   Py_Finalize();
    return(0);
 }
 
