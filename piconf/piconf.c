@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 ikh software, inc. All rights reserved.
+ * Copyright (c) 2018 ikh software, inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,30 +31,28 @@
 #include <dirent.h>
 #include <string.h>
 #include <sys/stat.h>
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
+#include <python2.7/Python.h>
 
 #include "version.h"
 
-#define WRITE_BEG "[=====["
-#define WRITE_END "]=====]"
+#define WRITE_BEG "'''"
+#define WRITE_END "'''"
 
 #define NL '\n'
 
-#define doNewLine(c) fprintf(fo,"io.write('\\n') -- %d\n",lineno)
+#define doNewLine(c) fprintf(fo,"sys.stdout.write('\\n') # %d\n",lineno)
 
-#define begText() fprintf(fo,"io.write(%s",WRITE_BEG)
+#define begText() fprintf(fo,"sys.stdout.write(%s",WRITE_BEG)
 #define doText(c) fputc(c,fo)
-#define endText() fprintf(fo,"%s) -- %d\n",WRITE_END,lineno)
+#define endText() fprintf(fo,"%s) # %d\n",WRITE_END,lineno)
 
 #define begStat() fputc(NL,fo)
 #define doStat(c) fputc(c,fo)
-#define endStat() fprintf(fo," -- %d\n",lineno)
+#define endStat() fprintf(fo," # %d\n",lineno)
 
-#define begExpr() fprintf(fo,"io.write(tostring(")
+#define begExpr() fprintf(fo,"sys.stdout.write(str(")
 #define doExpr(c) fputc(c,fo)
-#define endExpr() fprintf(fo,")) -- %d\n", lineno)
+#define endExpr() fprintf(fo,")) # %d\n", lineno)
 
 void convert(FILE* fi, FILE* fo, int n, int eq, int la, int ra) {
    int lineno = 1;
@@ -199,7 +197,7 @@ void convert(FILE* fi, FILE* fo, int n, int eq, int la, int ra) {
    }
 }
 
-void process_file(lua_State *L, const char* iname, const char* oname, int tflag, int mflag, int vflag, const char* pattern, int n, int cs, int cle, int cre) {
+void process_file(const char* iname, const char* oname, int tflag, int mflag, int vflag, const char* pattern, int n, int cs, int cle, int cre) {
 
    if (vflag) {
       fprintf(stderr, "processing file '%s' -> '%s', (%d,'%c','%c','%c')\n", iname, oname, n,cs,cle,cre);
@@ -242,6 +240,7 @@ void process_file(lua_State *L, const char* iname, const char* oname, int tflag,
       fprintf(stderr,"can't open temporary file (file='%s', errno=%d: %s)\n", tname, errno, strerror(errno));
       exit(1);
    }
+   fprintf(ft,"import sys\n");
    convert(fi,ft,n,cs,cle,cre);
    fclose(ft);
 
@@ -249,10 +248,13 @@ void process_file(lua_State *L, const char* iname, const char* oname, int tflag,
       fclose(fi);
    }
 
-   if (luaL_dofile(L,tname)!=0) {
-      fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),tname);
-      lua_pop(L,1);
-      exit(1);
+   ft = fopen(tname,"r");
+   if (ft) {
+      if (PyRun_SimpleFile(ft, tname) != 0) {
+         //fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),tname);
+         exit(1);
+      }
+      fclose(ft);
    }
 
 //   if (!isStdout) {
@@ -284,8 +286,8 @@ void process_file(lua_State *L, const char* iname, const char* oname, int tflag,
    }
 }
 
-void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vflag, const char* pattern, const char* replace, int level) {
-
+void process_dir(const char* dname, int tflag, int mflag, int vflag, const char* pattern, const char* replace, int level) {
+/*
    if (vflag) {
       fprintf(stderr, "processing dir(%d) '%s'\n", level, dname);
    }
@@ -299,7 +301,7 @@ void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vfla
    while ((dp=readdir(dirp)) != NULL) {
       switch(dp->d_type) {
       case DT_REG:
-         lua_getglobal(L,"miconf_fname_hook");
+         lua_getglobal(L,"piconf_fname_hook");
          lua_pushinteger(L,level);
          lua_pushstring(L,pattern);
          lua_pushstring(L,dname);
@@ -307,7 +309,7 @@ void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vfla
          lua_pushinteger(L,dp->d_type);
          lua_pushstring(L,replace);
          if (lua_pcall(L, 6, 3, 0) != 0) {
-            fprintf(stderr,"error running lua function 'miconf_fname_hook': %s\n", lua_tostring(L,-1));
+            fprintf(stderr,"error running lua function 'piconf_fname_hook': %s\n", lua_tostring(L,-1));
             exit(1);
          }
          if (lua_istable(L,-1) && lua_isstring(L,-2) && lua_isstring(L,-3)) {
@@ -334,51 +336,49 @@ void process_dir(lua_State *L, const char* dname, int tflag, int mflag, int vfla
             int cre = lua_tointeger(L,-1);
             lua_pop(L,1);
 
-            process_file(L,iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
+            process_file(iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
          }
          lua_pop(L,3);  
          break;
       case DT_DIR:
          if (strcmp(dp->d_name,".")==0 || strcmp(dp->d_name,"..")==0) 
             break;
-         lua_getglobal(L,"miconf_dname_hook");
+         lua_getglobal(L,"piconf_dname_hook");
          lua_pushinteger(L,level);
          lua_pushstring(L,dname);
          lua_pushstring(L,dp->d_name);
          if (lua_pcall(L, 3, 1, 0) != 0) {
-            fprintf(stderr,"error running lua function 'miconf_dname_hook': %s\n", lua_tostring(L,-1));
+            fprintf(stderr,"error running lua function 'piconf_dname_hook': %s\n", lua_tostring(L,-1));
             exit(1);
          }
          if (lua_isstring(L,-1)) {
-            process_dir(L,lua_tostring(L,-1),tflag,mflag,vflag,pattern,replace,level+1);
+            process_dir(lua_tostring(L,-1),tflag,mflag,vflag,pattern,replace,level+1);
          }
          lua_pop(L,1);
          break;
       }
    }
    closedir(dirp);
-
+*/
 }
 
 void version() {
-      fprintf(stderr,"Miconf: configuration utility\n");
-      fprintf(stderr,"Miconf %s Copyright (c) 2012 ikh software, inc.\n", miconf_VERSION );
-      fprintf(stderr,"%s\n", LUA_COPYRIGHT);
+      fprintf(stderr,"Piconf: configuration utility\n");
+      fprintf(stderr,"Piconf %s Copyright (c) 2018 ikh software, inc.\n", miconf_VERSION );
 }
 
 void usage() {
-      fprintf(stderr,"Miconf: configuration utility\n");
-      fprintf(stderr,"Miconf %s Copyright (c) 2012 ikh software, inc.\n", miconf_VERSION );
-      fprintf(stderr,"%s\n\n", LUA_COPYRIGHT);
+      fprintf(stderr,"Piconf: configuration utility\n");
+      fprintf(stderr,"Piconf %s Copyright (c) 2018 ikh software, inc.\n", miconf_VERSION );
       fprintf(stderr,"Commit: %s\n\n", miconf_VERSION_RAW );
       fprintf(stderr,"Usage:\n");
-      fprintf(stderr,"   miconf [options] template_file output_file\n");
-      fprintf(stderr,"   miconf [options] -r directory\n\n");
+      fprintf(stderr,"   piconf [options] template_file output_file\n");
+      fprintf(stderr,"   piconf [options] -r directory\n\n");
       fprintf(stderr,"Options:\n");
       fprintf(stderr,"   -c file -- config file, for example: -c config.lua \n");
       fprintf(stderr,"   -e block -- config block, for example: -e 'host=\"foo\"; ip=\"127.0.0.1\"' \n");
-      fprintf(stderr,"   -p pattern -- template file name pattern (see 'miconf_fname_hook', default: '[.]template$')\n");
-      fprintf(stderr,"   -s replace -- file name pattern replacement (see 'miconf_fname_hook', default: '')\n");
+      fprintf(stderr,"   -p pattern -- template file name pattern (see 'piconf_fname_hook', default: '[.]template$')\n");
+      fprintf(stderr,"   -s replace -- file name pattern replacement (see 'piconf_fname_hook', default: '')\n");
       fprintf(stderr,"   -t -- preserve temp files\n");
       fprintf(stderr,"   -m -- disable chmod\n");
       fprintf(stderr,"   -v -- verbose\n");
@@ -395,25 +395,26 @@ int main(int argc, char* argv[]) {
    int vflag = 0;
    const char* pattern = "[.]template$";
    const char* replace = "";
-   lua_State *L = luaL_newstate();
-   luaL_openlibs(L);
 
+   Py_SetProgramName(argv[0]);
+   Py_Initialize();
 
+/*
    const char* hooks = 
-      "function miconf_dname_hook(level,path,file)\n"
+      "function piconf_dname_hook(level,path,file)\n"
       "   if file == \".git\" then\n"
       "      return nil\n"
       "   else\n"
       "      return path..(file and (\"/\"..file) or \"\")\n"
       "   end\n"
       "end\n"
-      "function miconf_markup_hook()\n"
+      "function piconf_markup_hook()\n"
       "   return {3,string.byte(\"=\"),string.byte(\"<\"),string.byte(\">\")}\n"
       "end\n"
-      "function miconf_fname_hook(level,pattern,path,file,type,replace)\n"
+      "function piconf_fname_hook(level,pattern,path,file,type,replace)\n"
       "   ofile,cnt = file:gsub(pattern,replace,1)\n"
       "   if ofile and cnt==1 and ofile:len()>0 then\n"
-      "      return path..(file and (\"/\"..file) or \"\"), path..\"/\"..ofile, miconf_markup_hook()\n"
+      "      return path..(file and (\"/\"..file) or \"\"), path..\"/\"..ofile, piconf_markup_hook()\n"
       "   else\n"
       "      return nil,nil,nil\n"
       "   end\n"
@@ -425,8 +426,10 @@ int main(int argc, char* argv[]) {
       lua_pop(L,1);
       exit(1);
    }
+*/
 
    while ((ch = getopt(argc, argv, "hVrtmvp:s:e:c:")) != -1) {
+      FILE *f;
       switch (ch) {
       case 'V':
          version();
@@ -434,7 +437,7 @@ int main(int argc, char* argv[]) {
       case 'h':
          usage();
          fprintf(stderr,"Default config:\n\n");
-         fprintf(stderr,"%s\n",hooks);
+         //fprintf(stderr,"%s\n",hooks);
          fprintf(stderr,"----\n\n");
          exit(0);
       case 'r': rflag = 1; break;
@@ -444,16 +447,18 @@ int main(int argc, char* argv[]) {
       case 'p': pattern = optarg; break;
       case 's': replace = optarg; break;
       case 'c':
-         if (luaL_dofile(L,optarg)!=0) {
-            fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),optarg);
-            lua_pop(L,1);
-            exit(1);
+         f = fopen(optarg,"r");
+         if (f) {
+            if (PyRun_SimpleFile(f, optarg) != 0) {
+               //fprintf(stderr,"%s (file='%s')\n",lua_tostring(L,-1),optarg);
+               exit(1);
+            }
+            fclose(f);
          }
          break;
       case 'e':
-         if (luaL_dostring(L,optarg)!=0) {
-            fprintf(stderr,"%s (block='%s')\n",lua_tostring(L,-1),optarg);
-            lua_pop(L,1);
+         if (PyRun_SimpleString(optarg)!=0) {
+            //fprintf(stderr,"%s (block='%s')\n",lua_tostring(L,-1),optarg);
             exit(1);
          }
          break;
@@ -468,16 +473,23 @@ int main(int argc, char* argv[]) {
    if (!rflag) {
       const char* iname = argc>0 ? argv[0] : "-";
       const char* oname = argc>1 ? argv[1] : "-";
-      lua_getglobal(L,"miconf_markup_hook");
+
+      int n = 3;
+      int cs = '=';
+      int cle = '<';
+      int cre = '>';
+/*
+      lua_getglobal(L,"piconf_markup_hook");
       if (lua_pcall(L, 0, 1, 0) != 0) {
-         fprintf(stderr,"error running lua function 'miconf_markup_hook': %s\n", lua_tostring(L,-1));
+         fprintf(stderr,"error running lua function 'piconf_markup_hook': %s\n", lua_tostring(L,-1));
          exit(1);
       }
 
       if (!lua_istable(L,-1)) {
-         fprintf(stderr,"'miconf_markup_hook' must return a table\n");
+         fprintf(stderr,"'piconf_markup_hook' must return a table\n");
          exit(1);
       }
+
 
       lua_pushinteger(L,1);
       lua_gettable(L,-2);
@@ -498,27 +510,34 @@ int main(int argc, char* argv[]) {
       lua_gettable(L,-2);
       int cre = lua_tointeger(L,-1);
       lua_pop(L,1);
+*/
 
-      process_file(L,iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
+      process_file(iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
 
+/*
       lua_pop(L,1);
+*/
    } else {
+/*
       const char* dname = argc>0 ? argv[0] : ".";
-      lua_getglobal(L,"miconf_dname_hook");
+      lua_getglobal(L,"piconf_dname_hook");
       lua_pushinteger(L,0);
       lua_pushstring(L,dname);
       lua_pushnil(L);
       if (lua_pcall(L, 3, 1, 0) != 0) {
-         fprintf(stderr,"error running lua function 'miconf_dname_hook': %s\n", lua_tostring(L,-1));
+         fprintf(stderr,"error running lua function 'piconf_dname_hook': %s\n", lua_tostring(L,-1));
          exit(1);
       }
       if (lua_isstring(L,-1)) {
-         process_dir(L,lua_tostring(L,-1),tflag,mflag,vflag,pattern,replace,1);
+         process_dir(lua_tostring(L,-1),tflag,mflag,vflag,pattern,replace,1);
       }
       lua_pop(L,1);
+*/
    }
 
+/*
    lua_close(L);
+*/
 
    return(0);
 }

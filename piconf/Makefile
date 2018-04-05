@@ -1,5 +1,5 @@
 piconf: piconf.c version.h
-	gcc -O2 -o $@ $< -lpython27 $(SYSLIBS)
+	gcc -O2 -o $@ $< -lpython2.7 $(SYSLIBS)
 
 version.h: ../.git
 	../scripts/git-generate-version-info miconf c >$@
