@@ -44,7 +44,7 @@
 #define doNewLine(c) fprintf(fo,"%*ssys.stdout.write('\\n') # %d\n",indent,"",lineno)
 
 #define begText() fprintf(fo,"%*ssys.stdout.write(%s",indent,"",WRITE_BEG)
-#define doText(c) fputc(c,fo)
+#define doText(c) (c=='\'' ? fprintf(fo,"\\'") : (c=='\\' ? fprintf(fo,"\\\\") :fputc(c,fo)))
 #define endText() fprintf(fo,"%s) # %d\n",WRITE_END,lineno)
 
 #define begStat() (indent=0, countIndent=1, fputc(NL,fo))

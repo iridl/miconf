@@ -1,4 +1,4 @@
-text0
+text\0
 text1,<<<c>>>,text2
 === if b > 100:
 ===    pass
@@ -9,5 +9,5 @@ text4
 ===    pass
 text5,<<<square(i)>>>,text6,<<<d['z']>>>,text7
 === pass
-text8
+'''text\n8'''
 

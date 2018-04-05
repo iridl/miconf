@@ -6,7 +6,7 @@
 	piconf [options] -r directory
 	piconf [options] template_file output_file
 ##Description
-`piconf` is a lightweight configuration utility based on simple template substitution technique and [Python](https://docs.python.org) expressions. It executes a configuration file (a Python script), and then uses the results of the execution (its global state) in template substitution. It reads `template_file` and substitutes `<<<`*Python expression*`>>>` placeholders with evaluated *Python expression*. It also executes lines with Python statements that start with `===`. 
+`piconf` is a lightweight configuration utility based on simple template substitution technique and [Python](https://docs.python.org) expressions. It executes a configuration file (a Python script), and then uses the results of the execution (its variable state) in template substitution. It reads `template_file` and substitutes `<<<`*Python expression*`>>>` placeholders with evaluated *Python expression*. It also executes lines with Python statements that start with `===`. 
 
 For example:
 
@@ -21,7 +21,7 @@ will result in the following output:
         3 ^ 3 = 27
         . . .
 
-Python uses whitespace (indentation) to define program blocks. The templates assume the current indentation. If you want to increase or decrease the amount of indentation, you use `pass` statement.
+Python uses whitespace (indentation) to define program blocks. The templates assume the current indentation. If you want to increase or decrease the amount of indentation, use `pass` statement with proper indentation.
 
 
 For example:
@@ -99,7 +99,7 @@ These functions get called when `piconf` is run in recoursive mode using `-r` op
 
 **`$ cat sample.template`**
 
-	text0
+	text\0
 	text1,<<<c>>>,text2
 	=== if b > 100:
         ===    pass
@@ -110,13 +110,13 @@ These functions get called when `piconf` is run in recoursive mode using `-r` op
         ===    pass
 	text5,<<<square(i)>>>,text6,<<<d['z']>>>,text7
 	=== pass
-	text8
+	'''text\n8'''
 
 **`$ piconf -v -e 'a=5' -c sample.config sample.template sample`**
 	
 **`$ cat sample`**
 
-	text0
+	text\0
 	text1,Hello, world!,text2
 	text3
 	text4
@@ -125,5 +125,5 @@ These functions get called when `piconf` is run in recoursive mode using `-r` op
 	text5,9,text6,boo,text7
 	text5,16,text6,boo,text7
 	text5,25,text6,boo,text7
-	text8
+	'''text\n8'''
 
