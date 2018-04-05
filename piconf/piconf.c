@@ -39,6 +39,7 @@
 #define WRITE_END "'''"
 
 #define NL '\n'
+#define SP ' '
 
 #define doNewLine(c) fprintf(fo,"sys.stdout.write('\\n') # %d\n",lineno)
 
@@ -95,9 +96,22 @@ void convert(FILE* fi, FILE* fo, int n, int eq, int la, int ra) {
          case NL: s=1; begText(); doText(eq); doText(eq); endText(); doNewLine(); break;
          default: 
             if (c==eq) {
-               s=4; begStat();
+               s=35;
             } else {
                s=5; begText(); doText(eq); doText(eq); doText(c);
+            }
+            break;
+         }
+         break;
+      case 35:
+         switch (c) {
+         case EOF: s=5; begText(); doText(eq); doText(eq); doText(eq); endText(); break;
+         case NL: s=1; begText(); doText(eq); doText(eq); doText(eq); endText(); doNewLine(); break;
+         default:
+            if (c==SP) {
+               s=4; begStat();
+            } else {
+               s=5; begText(); doText(eq); doText(eq); doText(eq); doText(c);
             }
             break;
          }
