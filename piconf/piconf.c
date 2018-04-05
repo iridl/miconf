@@ -41,17 +41,17 @@
 #define NL '\n'
 #define SP ' '
 
-#define doNewLine(c) fprintf(fo,"sys.stdout.write('\\n') # %d\n",lineno)
+#define doNewLine(c) fprintf(fo,"%*ssys.stdout.write('\\n') # %d\n",indent,"",lineno)
 
-#define begText() fprintf(fo,"sys.stdout.write(%s",WRITE_BEG)
+#define begText() fprintf(fo,"%*ssys.stdout.write(%s",indent,"",WRITE_BEG)
 #define doText(c) fputc(c,fo)
 #define endText() fprintf(fo,"%s) # %d\n",WRITE_END,lineno)
 
-#define begStat() fputc(NL,fo)
+#define begStat() (indent=0, countIndent=1, fputc(NL,fo))
 #define doStat(c) fputc(c,fo)
 #define endStat() fprintf(fo," # %d\n",lineno)
 
-#define begExpr() fprintf(fo,"sys.stdout.write(str(")
+#define begExpr() fprintf(fo,"%*ssys.stdout.write(str(",indent,"")
 #define doExpr(c) fputc(c,fo)
 #define endExpr() fprintf(fo,")) # %d\n", lineno)
 
@@ -59,6 +59,8 @@ void convert(FILE* fi, FILE* fo, int n, int eq, int la, int ra) {
    int lineno = 1;
    int c;
    int s = 1; //state
+   int indent = 0;
+   int countIndent = 1;
    do {
       c=getc(fi);
       switch (s) {
@@ -120,7 +122,15 @@ void convert(FILE* fi, FILE* fo, int n, int eq, int la, int ra) {
          switch (c) {
          case EOF: s=1; endStat(); break;
          case NL: s=1; endStat(); break;
-         default: s=4; doStat(c); break;
+         default: 
+            s=4; 
+            if (countIndent && c==SP) {
+               indent ++;
+            } else {
+               countIndent = 0;
+            }
+            doStat(c); 
+            break;
          }
          break;
       case 5:
