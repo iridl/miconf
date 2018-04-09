@@ -18,15 +18,18 @@ build:
 	$(MAKE) -C lua $(LUA_PLAT)
 	$(MAKE) -C scripts
 	$(MAKE) -C miconf "SYSLIBS=$(SYSLIBS)"
+	$(MAKE) -C piconf "SYSLIBS=$(SYSLIBS)"
 
 clean distclean:
 	$(MAKE) -C lua clean
 	$(MAKE) -C scripts clean
 	$(MAKE) -C miconf clean
+	$(MAKE) -C piconf clean
 
 install: build
 	$(INSTALL) -d $(PREFIX)/bin
 	$(INSTALL) miconf/miconf $(PREFIX)/bin
+	$(INSTALL) piconf/piconf $(PREFIX)/bin
 	$(INSTALL) lua/src/luac $(PREFIX)/bin
 	$(INSTALL) lua/src/lua $(PREFIX)/bin
 	$(INSTALL) scripts/miconf-platform $(PREFIX)/bin

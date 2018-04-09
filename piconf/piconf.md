@@ -67,7 +67,8 @@ When `piconf` is run in recoursive `-r` mode, it traverses `directory` recoursiv
 ##Default hooks
 
 The following "hooks" are used if you do not redefine them in your configuration files. 
-These functions get called when `piconf` is run in recoursive mode using `-r` option. `piconf_dname_hook` is invoked for each subdirectory, and `piconf_fname_hook` is called for each regular file. `piconf_dname_hook` has to return a full path to the subdirectory to traverse, or `nil` to ignore the whole subdirectory. `piconf_fname_hook` has to return input file path, output file path and markup syntax description table (see `piconf_markup_hook` below), or `(nil,nil,nil)` if you want to ignore the file. These functions allow for customization of piconf's behavior, i.e. what parts of your tree and what files to process, and how to come up with output file names. For example, you may keep your templates at a separate directory and output files into your output tree, etc. You may adjust piconf's markup syntax with `piconf_markup_hook`.
+Function `piconf_markup_hook` is used in both normal abd recursive modes. Functions `piconf_dname_hook` and `piconf_fname_hook` get called in recoursive mode only. Function `piconf_dname_hook` is invoked for each subdirectory, and `piconf_fname_hook` is called for each regular file. `piconf_dname_hook` has to return a full path to the subdirectory to traverse, or `None` to ignore the whole subdirectory. `piconf_fname_hook` has to return input file path, output file path and markup syntax description table (see `piconf_markup_hook` below), or `(None,None,None)` if you want to ignore the file. These functions allow for customization of piconf's behavior, i.e. what parts of your tree and what files to process, and how to come up with output file names. For example, you may keep your templates at a separate directory and output files into your output tree, etc. You may adjust piconf's markup syntax with `piconf_markup_hook`. Currently the first element of the array returned by `piconf_markup_hook` is not use
+d.
 
 	def piconf_dname_hook(level,path,fname=None):
 	   return path + (('/'+fname) if fname else '')
@@ -75,12 +76,12 @@ These functions get called when `piconf` is run in recoursive mode using `-r` op
 	def piconf_markup_hook():
 	   return [3,ord("="),ord("<"),ord(">")]
 
-	def piconf_fname_hook(level,pattern,path,fname=None,ftype,replace)
+	def piconf_fname_hook(level,pattern,path,fname=None,ftype,replace):
 	   ofname,cnt = re.subn(pattern,replace,fname,count=1)
 	   if ofname and cnt==1 and len(ofname)>0:
-	      return path + (('/'..fname) if fname else ''), path + '/' + ofname, piconf_markup_hook()
+	      return path + (('/' + fname) if fname else ''), path + '/' + ofname, piconf_markup_hook()
 	   else
-	      return nil,nil,nil
+	      return None,None,None
 
 ##Example
 

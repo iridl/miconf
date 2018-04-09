@@ -264,7 +264,6 @@ void process_file(PyObject *P, const char* iname, const char* oname, int tflag, 
       fprintf(stderr,"can't open temporary file (file='%s', errno=%d: %s)\n", tname, errno, strerror(errno));
       exit(1);
    }
-   fprintf(ft,"import sys\n");
    convert(fi,ft,n,cs,cle,cre);
    fclose(ft);
 
@@ -327,13 +326,15 @@ void process_dir(PyObject *P, const char* dname, int tflag, int mflag, int vflag
       switch(dp->d_type) {
       case DT_REG: {
 
-            sprintf(buf,"(__piconf_iname, __piconf_oname, __piconf_markup) = piconf_fname_hook(%d,\"%s\",\"%s\",\"%s\",%d,\"%s\");"
-               " (__piconf_n,__piconf_cs,__piconf_cle,__piconf_cre) = __piconf_markup;\n",
+            sprintf(buf,"(__piconf_iname, __piconf_oname, __piconf_markup) = piconf_fname_hook(%d,\"%s\",\"%s\",\"%s\",%d,\"%s\")\n"
+               "(__piconf_n,__piconf_cs,__piconf_cle,__piconf_cre) = (__piconf_markup if not __piconf_markup is None else [3,ord('='),ord('<'),ord('>')])\n",
                level,pattern,dname,dp->d_name,dp->d_type,replace);
+            //fprintf(stderr,"Calling piconf_fname_hook: <<<%s>>>\n",buf);
             if (PyRun_SimpleString(buf)!=0) {
                fprintf(stderr,"Cannot execute script (block='%s')\n",buf);
                exit(1);
             }
+
             PyObject *var_iname = PyObject_GetAttrString(P, "__piconf_iname");
             PyObject *var_oname = PyObject_GetAttrString(P, "__piconf_oname");
             PyObject *var_n = PyObject_GetAttrString(P, "__piconf_n");
@@ -341,15 +342,17 @@ void process_dir(PyObject *P, const char* dname, int tflag, int mflag, int vflag
             PyObject *var_cle = PyObject_GetAttrString(P, "__piconf_cle");
             PyObject *var_cre = PyObject_GetAttrString(P, "__piconf_cre");
 
-            const char* iname = PyString_AsString(var_iname);
-            const char* oname = PyString_AsString(var_oname);
+            const char* iname = (PyString_Check(var_iname) ? PyString_AsString(var_iname) : NULL);
+            const char* oname = (PyString_Check(var_oname) ? PyString_AsString(var_oname) : NULL);
 
             int n = (var_n==NULL ? 3 : PyInt_AsLong(var_n));
             int cs = (var_cs==NULL ? '=' : PyInt_AsLong(var_cs));
             int cle = (var_cle==NULL ? '<' : PyInt_AsLong(var_cle));
             int cre = (var_cre==NULL ? '>' : PyInt_AsLong(var_cre));
 
-            process_file(P,iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
+            if (iname && oname) {
+               process_file(P,iname,oname,tflag,mflag,vflag,pattern,n,cs,cle,cre);
+            }
 
             Py_XDECREF(var_cre);
             Py_XDECREF(var_cle);
@@ -420,6 +423,9 @@ int main(int argc, char* argv[]) {
 
    const char* hooks = 
 
+      "import sys,re\n"
+      "reload(sys)\n"
+      "sys.setdefaultencoding('utf8')\n"
       "def piconf_dname_hook(level,path,fname=None):\n"
       "   return path + (('/'+fname) if fname else '')\n"
       "def piconf_markup_hook():\n"
@@ -429,7 +435,7 @@ int main(int argc, char* argv[]) {
       "   if ofname and cnt==1 and len(ofname)>0:\n"
       "      return path + (('/'+fname) if fname else ''), path + '/' + ofname, piconf_markup_hook()\n"
       "   else:\n"
-      "      return nil,nil,nil\n"
+      "      return None,None,None\n"
    ;
 
    if (PyRun_SimpleString(hooks)!=0) {
@@ -494,10 +500,10 @@ int main(int argc, char* argv[]) {
       PyObject *var_cle = PyObject_GetAttrString(P, "__piconf_cle");
       PyObject *var_cre = PyObject_GetAttrString(P, "__piconf_cre");
 
-      int n = (var_n==NULL ? 3 : PyInt_AsLong(var_n));
-      int cs = (var_cs==NULL ? '=' : PyInt_AsLong(var_cs));
-      int cle = (var_cle==NULL ? '<' : PyInt_AsLong(var_cle));
-      int cre = (var_cre==NULL ? '>' : PyInt_AsLong(var_cre));
+      int n = (!PyInt_Check(var_n) ? 3 : PyInt_AsLong(var_n));
+      int cs = (!PyInt_Check(var_cs) ? '=' : PyInt_AsLong(var_cs));
+      int cle = (!PyInt_Check(var_cle) ? '<' : PyInt_AsLong(var_cle));
+      int cre = (!PyInt_Check(var_cre) ? '>' : PyInt_AsLong(var_cre));
 
       Py_XDECREF(var_cre);
       Py_XDECREF(var_cle);
